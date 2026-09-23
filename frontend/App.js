@@ -8,12 +8,7 @@ import MainScreen from './src/screens/MainScreen';
 import ProfileFormScreen from './src/screens/ProfileFormScreen';
 import ScheduleReminderScreen from './src/screens/ScheduleReminderScreen';
 import { setAuthToken } from './src/api/client';
-
-// Simple fallback for theme if not imported
-const colors = {
-  primary: '#4b6cb7',
-  bg: '#f8f9fa'
-};
+import { colors } from './src/theme';
 
 const Stack = createNativeStackNavigator();
 
@@ -33,18 +28,25 @@ export default function App() {
   return (
     <>
       <StatusBar style="auto" />
+      <StatusBar style="dark" />
       {token ? (
         <NavigationContainer>
           <Stack.Navigator
             screenOptions={{
-              headerStyle: { backgroundColor: colors.primary },
-              headerTintColor: '#fff',
-              headerTitleStyle: { fontWeight: 'bold' },
+              headerStyle: { backgroundColor: colors.surface },
+              headerTintColor: colors.primaryDark,
+              headerTitleStyle: { fontWeight: '800', color: colors.primaryDark },
+              headerTitleStyle: { fontWeight: '800', color: colors.primaryDark, fontSize: 18 },
+              headerShadowVisible: false,
+              headerTitleAlign: 'center',
+              headerBackTitle: 'Atrás',
+              contentStyle: { backgroundColor: colors.bg },
             }}
           >
             <Stack.Screen 
               name="Main" 
               options={{ title: 'Medi-Hora' }}
+              options={{ headerShown: false }}
             >
               {(props) => <MainScreen {...props} onLogout={handleLogout} />}
             </Stack.Screen>
@@ -52,11 +54,15 @@ export default function App() {
               name="ProfileForm" 
               component={ProfileFormScreen} 
               options={{ title: 'Perfil' }}
+              options={({ route }) => ({
+                title: route.params?.profile ? 'Editar Perfil' : 'Nuevo Perfil Familiar',
+              })}
             />
             <Stack.Screen 
               name="ScheduleReminder" 
               component={ScheduleReminderScreen} 
               options={{ title: 'Recordatorio' }}
+              options={{ title: 'Programar Recordatorio' }}
             />
           </Stack.Navigator>
         </NavigationContainer>

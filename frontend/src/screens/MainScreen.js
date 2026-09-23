@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import client from '../api/client';
 import { colors, shadow } from '../theme';
+import { colors, shadow, shadowSm } from '../theme';
 
 export default function MainScreen({ navigation, onLogout }) {
   const [profiles, setProfiles] = useState([]);
@@ -29,10 +30,12 @@ export default function MainScreen({ navigation, onLogout }) {
         client.get('/medications').catch(() => ({ data: [] })),
       ]);
       setProfiles(profilesRes.data);
+      setProfiles(profilesRes.data || []);
       setMedications(medsRes.data || []);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'No se pudieron cargar los datos');
+      Alert.alert('Error', 'No se pudieron sincronizar los datos familiares.');
     } finally {
       setLoading(false);
     }
@@ -45,9 +48,11 @@ export default function MainScreen({ navigation, onLogout }) {
   }, [isFocused]);
 
   const handleDeleteProfile = async (id) => {
+  const handleDeleteProfile = async (id, name) => {
     Alert.alert(
       'Eliminar Perfil',
       '¿Estás seguro de que deseas eliminar este perfil y todos sus recordatorios?',
+      `¿Deseas eliminar a "${name}" y todos sus recordatorios programados?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -70,6 +75,8 @@ export default function MainScreen({ navigation, onLogout }) {
     Alert.alert(
       'Eliminar Medicamento',
       `¿Deseas eliminar el recordatorio de "${medName}"?`,
+      'Eliminar Recordatorio',
+      `¿Deseas eliminar el tratamiento de "${medName}"?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -102,14 +109,18 @@ export default function MainScreen({ navigation, onLogout }) {
         return 'Semanal';
       default:
         return freqType;
+        return freqType || 'Horario fijo';
     }
   };
 
   const renderItem = ({ item }) => {
+  const renderProfileItem = ({ item }) => {
     const profileMeds = medications.filter((m) => m.profile_id === item.id);
 
     return (
       <View style={[styles.card, shadow]}>
+      <View style={[styles.card, shadowSm]}>
+        {/* CABECERA DEL PERFIL */}
         <View style={styles.profileHeader}>
           {item.photo ? (
             <Image source={{ uri: item.photo }} style={styles.avatar} />
@@ -121,8 +132,15 @@ export default function MainScreen({ navigation, onLogout }) {
 
           <View style={styles.cardInfo}>
             <Text style={styles.name}>{item.name}</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+              <View style={styles.typeBadge}>
+                <Text style={styles.typeBadgeText}>{item.type}</Text>
+              </View>
+            </View>
             <Text style={styles.details}>
               {item.type} · {new Date(item.birthdate).toLocaleDateString()}
+              Nacimiento: {new Date(item.birthdate).toLocaleDateString()}
             </Text>
           </View>
 
@@ -130,18 +148,24 @@ export default function MainScreen({ navigation, onLogout }) {
             <TouchableOpacity
               style={styles.iconBtn}
               onPress={() => navigation.navigate('ProfileForm', { profile: item })}
+              activeOpacity={0.7}
             >
               <Ionicons name="create-outline" size={18} color={colors.primaryDark} />
+              <Ionicons name="create-outline" size={17} color={colors.primaryDark} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.iconBtn, styles.iconBtnDanger]}
               onPress={() => handleDeleteProfile(item.id)}
+              onPress={() => handleDeleteProfile(item.id, item.name)}
+              activeOpacity={0.7}
             >
               <Ionicons name="trash-outline" size={18} color={colors.danger} />
+              <Ionicons name="trash-outline" size={17} color={colors.danger} />
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* BOTÓN PROGRAMAR DOSIS PARA ESTE PERFIL */}
         <TouchableOpacity
           style={styles.scheduleDoseBtn}
           onPress={() => navigation.navigate('ScheduleReminder', { profile: item })}
@@ -149,18 +173,33 @@ export default function MainScreen({ navigation, onLogout }) {
         >
           <Ionicons name="alarm-outline" size={18} color="#fff" />
           <Text style={styles.scheduleDoseBtnText}>Programar dosis</Text>
+          <Text style={styles.scheduleDoseBtnText}>Programar Dosis</Text>
         </TouchableOpacity>
 
+        {/* SECCIÓN DE TRATAMIENTOS ASIGNADOS */}
         <View style={styles.medsSection}>
           <Text style={styles.medsTitle}>Tratamientos ({profileMeds.length})</Text>
+          <View style={styles.medsHeaderRow}>
+            <Text style={styles.medsTitle}>Tratamientos activos</Text>
+            <View style={styles.medsCountBadge}>
+              <Text style={styles.medsCountText}>
+                {profileMeds.length} {profileMeds.length === 1 ? 'medicamento' : 'medicamentos'}
+              </Text>
+            </View>
+          </View>
 
           {profileMeds.length === 0 ? (
             <TouchableOpacity
               style={styles.emptyMedsBox}
               onPress={() => navigation.navigate('ScheduleReminder', { profile: item })}
+              activeOpacity={0.7}
             >
               <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
               <Text style={styles.emptyMedsText}>Aún no hay medicamentos. Toca para añadir.</Text>
+              <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+              <Text style={styles.emptyMedsText}>
+                Sin medicamentos programados. Toca para añadir uno.
+              </Text>
             </TouchableOpacity>
           ) : (
             profileMeds.map((med) => (
@@ -171,10 +210,12 @@ export default function MainScreen({ navigation, onLogout }) {
                   ) : (
                     <View style={styles.medIconPlaceholder}>
                       <Ionicons name="medical" size={18} color={colors.primary} />
+                      <Ionicons name="medkit" size={18} color={colors.primary} />
                     </View>
                   )}
 
                   <View style={{ flex: 1, marginLeft: 10 }}>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
                     <View style={styles.rowBetween}>
                       <Text style={styles.medItemName}>{med.medication_name}</Text>
                       <TouchableOpacity
@@ -182,6 +223,7 @@ export default function MainScreen({ navigation, onLogout }) {
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
                         <Ionicons name="close" size={18} color={colors.muted} />
+                        <Ionicons name="close-circle-outline" size={18} color={colors.muted} />
                       </TouchableOpacity>
                     </View>
 
@@ -190,10 +232,19 @@ export default function MainScreen({ navigation, onLogout }) {
                       {' · '}
                       {formatFrequencyLabel(med.frequency_type, med.frequency_value)}
                     </Text>
+                    <View style={styles.medSubRow}>
+                      <View style={styles.dosePill}>
+                        <Text style={styles.dosePillText}>{med.dose}</Text>
+                      </View>
+                      <Text style={styles.medFreqText}>
+                        {formatFrequencyLabel(med.frequency_type, med.frequency_value)}
+                      </Text>
+                    </View>
 
                     <View style={styles.medTimesRow}>
                       {(med.times || []).map((t, idx) => (
                         <View key={idx} style={styles.timeBadgeMini}>
+                          <Ionicons name="time-outline" size={11} color={colors.primaryDark} style={{ marginRight: 3 }} />
                           <Text style={styles.timeBadgeMiniText}>{t}</Text>
                         </View>
                       ))}
@@ -201,6 +252,12 @@ export default function MainScreen({ navigation, onLogout }) {
 
                     {med.notes ? (
                       <Text style={styles.medItemNotes}>{med.notes}</Text>
+                      <View style={styles.notesWrap}>
+                        <Ionicons name="information-circle-outline" size={13} color={colors.muted} />
+                        <Text style={styles.medItemNotes} numberOfLines={2}>
+                          {med.notes}
+                        </Text>
+                      </View>
                     ) : null}
                   </View>
                 </View>
@@ -214,38 +271,65 @@ export default function MainScreen({ navigation, onLogout }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* BARRA SUPERIOR */}
       <View style={styles.topBar}>
         <View>
           <Text style={styles.brand}>Medi-Hora</Text>
           <Text style={styles.topSubtitle}>Perfiles y tratamientos</Text>
+        <View style={styles.brandContainer}>
+          <View style={styles.brandIconWrap}>
+            <Ionicons name="medkit" size={20} color="#fff" />
+          </View>
+          <View>
+            <Text style={styles.brand}>Medi-Hora</Text>
+            <Text style={styles.topSubtitle}>Control de tratamientos familiares</Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.logoutChip} onPress={onLogout}>
           <Ionicons name="log-out-outline" size={18} color={colors.danger} />
+
+        <TouchableOpacity style={styles.logoutChip} onPress={onLogout} activeOpacity={0.8}>
+          <Ionicons name="log-out-outline" size={17} color={colors.danger} />
           <Text style={styles.logoutChipText}>Salir</Text>
         </TouchableOpacity>
       </View>
 
+      {/* CONTENIDO PRINCIPAL */}
       {loading && profiles.length === 0 ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Cargando datos familiares...</Text>
+          <Text style={styles.loadingText}>Sincronizando perfiles...</Text>
         </View>
       ) : (
         <FlatList
           data={profiles}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
+          renderItem={renderProfileItem}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             !loading && (
               <View style={[styles.emptyCard, shadow]}>
+              <View style={[styles.emptyCard, shadowSm]}>
                 <View style={styles.emptyIcon}>
                   <Ionicons name="people-outline" size={36} color={colors.primary} />
+                  <Ionicons name="people" size={38} color={colors.primary} />
                 </View>
                 <Text style={styles.emptyText}>Aún no hay perfiles</Text>
+                <Text style={styles.emptyText}>Aún no tienes perfiles familiares</Text>
                 <Text style={styles.emptySubText}>
                   Crea un perfil familiar para empezar a programar recordatorios.
+                  Crea perfiles para ti o tus familiares para comenzar a programar recordatorios de medicamentos.
                 </Text>
+                <TouchableOpacity
+                  style={styles.emptyActionBtn}
+                  onPress={() => navigation.navigate('ProfileForm')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="person-add-outline" size={18} color="#fff" />
+                  <Text style={styles.emptyActionBtnText}>Crear Primer Perfil</Text>
+                </TouchableOpacity>
               </View>
             )
           }
@@ -253,12 +337,16 @@ export default function MainScreen({ navigation, onLogout }) {
       )}
 
       <View style={styles.footer}>
+      {/* FOOTER FLOTANTE CON ACCIONES */}
+      <View style={[styles.footer, shadow]}>
         <View style={styles.footerButtonsRow}>
           <TouchableOpacity
             style={[styles.addButton, { flex: 1, marginRight: 8 }]}
+            style={styles.addButton}
             onPress={() => {
               if (profiles.length >= 10) {
                 Alert.alert('Límite alcanzado', 'No puedes crear más de 10 perfiles por cuenta.');
+                Alert.alert('Límite alcanzado', 'Has alcanzado el límite máximo de 10 perfiles por cuenta.');
               } else {
                 navigation.navigate('ProfileForm');
               }
@@ -267,16 +355,21 @@ export default function MainScreen({ navigation, onLogout }) {
           >
             <Ionicons name="person-add-outline" size={18} color="#fff" />
             <Text style={styles.addButtonText}>Nuevo perfil</Text>
+            <Ionicons name="person-add-outline" size={18} color={colors.primary} />
+            <Text style={styles.addButtonText}>Nuevo Perfil</Text>
           </TouchableOpacity>
 
           {profiles.length > 0 && (
             <TouchableOpacity
               style={[styles.quickScheduleBtn, { flex: 1.2 }]}
+              style={styles.quickScheduleBtn}
               onPress={() => navigation.navigate('ScheduleReminder')}
               activeOpacity={0.85}
             >
               <Ionicons name="time-outline" size={18} color="#fff" />
               <Text style={styles.quickScheduleBtnText}>Programar dosis</Text>
+              <Ionicons name="alarm-outline" size={18} color="#fff" />
+              <Text style={styles.quickScheduleBtnText}>Programar Dosis</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -289,47 +382,84 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   topBar: {
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 12,
+    paddingBottom: 14,
+    paddingBottom: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  brandContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   brand: {
-    fontSize: 26,
+    fontSize: 28,
+    fontSize: 22,
     fontWeight: '800',
     color: colors.primaryDark,
     letterSpacing: -0.4,
   },
   topSubtitle: { fontSize: 13, color: colors.muted, marginTop: 2 },
+  topSubtitle: { fontSize: 12, color: colors.muted, marginTop: 1 },
   logoutChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    gap: 5,
     backgroundColor: colors.dangerSoft,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
+    paddingVertical: 7,
+    borderRadius: 14,
   },
   logoutChipText: { color: colors.danger, fontWeight: '700', fontSize: 13 },
   centerLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, color: colors.muted },
   list: { padding: 16, paddingBottom: 24 },
+  loadingText: { marginTop: 12, color: colors.muted, fontSize: 14 },
+  list: { padding: 16, paddingBottom: 28 },
 
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 14,
+    borderRadius: 22,
+    padding: 17,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E8EFF0',
+    borderColor: colors.borderLight,
   },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  avatar: { width: 52, height: 52, borderRadius: 18, marginRight: 12 },
+  avatar: { width: 56, height: 56, borderRadius: 19, marginRight: 12 },
+  avatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    marginRight: 12,
+  },
   avatarPlaceholder: {
-    width: 52,
-    height: 52,
+    width: 56,
+    height: 56,
+    borderRadius: 19,
+    width: 54,
+    height: 54,
     borderRadius: 18,
     marginRight: 12,
     backgroundColor: colors.primary,
@@ -337,9 +467,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: { color: '#ffffff', fontSize: 20, fontWeight: '800' },
+  avatarText: { color: '#ffffff', fontSize: 22, fontWeight: '800' },
   cardInfo: { flex: 1 },
   name: { fontSize: 17, fontWeight: '800', color: colors.text, marginBottom: 2 },
   details: { fontSize: 13, color: colors.muted, textTransform: 'capitalize' },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 2,
+  },
+  name: { fontSize: 17, fontWeight: '800', color: colors.text },
+  typeBadge: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  typeBadgeText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  details: { fontSize: 12, color: colors.muted },
 
   actionsTop: { flexDirection: 'row', gap: 6 },
   iconBtn: {
@@ -347,16 +499,24 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 12,
     backgroundColor: colors.primaryMuted,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconBtnDanger: { backgroundColor: colors.dangerSoft },
+  iconBtnDanger: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.dangerSoft,
+  },
 
   scheduleDoseBtn: {
     backgroundColor: colors.primary,
     marginTop: 14,
+    paddingVertical: 14,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
@@ -371,16 +531,40 @@ const styles = StyleSheet.create({
   medsSection: {
     marginTop: 14,
     paddingTop: 12,
+    marginTop: 16,
+    paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+    borderTopColor: colors.borderLight,
+  },
+  medsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   medsTitle: {
     fontSize: 12,
     fontWeight: '800',
     color: colors.muted,
+    color: colors.primaryDark,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  medsCountBadge: {
+    backgroundColor: colors.surfaceAlt,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  medsCountText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.muted,
   },
   emptyMedsBox: {
     backgroundColor: colors.primaryMuted,
@@ -388,6 +572,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.primarySoft,
+    backgroundColor: colors.surfaceAlt,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.border,
     borderStyle: 'dashed',
     alignItems: 'center',
     flexDirection: 'row',
@@ -395,12 +584,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyMedsText: { fontSize: 12, color: colors.primaryDark, fontWeight: '600', flexShrink: 1 },
+  emptyMedsText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600', flexShrink: 1 },
 
   medItemCard: {
     backgroundColor: colors.bg,
     borderRadius: 12,
     padding: 10,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 14,
+    padding: 12,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   medItemMain: {
     flexDirection: 'row',
@@ -409,14 +604,19 @@ const styles = StyleSheet.create({
   medPhotoThumb: {
     width: 44,
     height: 44,
+    width: 46,
+    height: 46,
     borderRadius: 12,
     backgroundColor: colors.border,
   },
   medIconPlaceholder: {
     width: 44,
     height: 44,
+    width: 46,
+    height: 46,
     borderRadius: 12,
     backgroundColor: colors.primarySoft,
+    backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -429,8 +629,32 @@ const styles = StyleSheet.create({
   medItemDose: { fontSize: 12, color: colors.muted, marginTop: 2 },
   medItemDoseStrong: { fontWeight: '700', color: colors.text },
   medTimesRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
+  medSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  dosePill: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  dosePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primaryDark,
+  },
+  medFreqText: { fontSize: 12, color: colors.muted },
+  medTimesRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 4 },
   timeBadgeMini: {
     backgroundColor: colors.primarySoft,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -439,54 +663,98 @@ const styles = StyleSheet.create({
   },
   timeBadgeMiniText: { fontSize: 11, fontWeight: '700', color: colors.primaryDark },
   medItemNotes: { fontSize: 11, color: colors.muted, fontStyle: 'italic', marginTop: 4 },
+  timeBadgeMiniText: { fontSize: 11, fontWeight: '800', color: colors.primaryDark },
+  notesWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  medItemNotes: { fontSize: 11, color: colors.muted, fontStyle: 'italic', flexShrink: 1 },
 
   emptyCard: {
     alignItems: 'center',
     marginTop: 40,
+    marginTop: 36,
     backgroundColor: colors.surface,
     borderRadius: 24,
-    padding: 28,
+    padding: 30,
+    borderWidth: 1,
+    borderColor: '#E8EFF0',
+    borderColor: colors.borderLight,
   },
   emptyIcon: {
     width: 72,
     height: 72,
     borderRadius: 24,
     backgroundColor: colors.primarySoft,
+    width: 76,
+    height: 76,
+    borderRadius: 26,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
+    marginBottom: 16,
   },
   emptyText: { fontSize: 18, fontWeight: '800', color: colors.text },
+  emptyText: { fontSize: 18, fontWeight: '800', color: colors.text, textAlign: 'center' },
   emptySubText: {
     fontSize: 14,
     color: colors.muted,
     marginTop: 6,
     textAlign: 'center',
     lineHeight: 20,
+    maxWidth: 280,
+  },
+  emptyActionBtn: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 20,
+  },
+  emptyActionBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
   },
 
   footer: {
     padding: 14,
     paddingBottom: 22,
+    paddingBottom: 20,
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderColor: colors.border,
+    borderColor: colors.borderLight,
   },
   footerButtonsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 10,
   },
   addButton: {
     backgroundColor: colors.success,
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
+    gap: 6,
   },
   addButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
+  addButtonText: { color: colors.primary, fontSize: 14, fontWeight: '800' },
   quickScheduleBtn: {
+    flex: 1.2,
     backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 14,
@@ -494,6 +762,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
+    gap: 6,
   },
   quickScheduleBtnText: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
 });
