@@ -1,9 +1,6 @@
 export const colors = {
   primary: '#0F8B8D',
   primaryDark: '#123B4A',
-  primaryMuted: '#E4F4F2',
-  primarySoft: '#D5EFEC',
-  bg: '#F3F7F8',
   primaryLight: '#EAF6F5',
   primaryMuted: '#D9F0ED',
   primarySoft: '#CEEBE6',
@@ -11,14 +8,6 @@ export const colors = {
   accentSoft: '#FFF1ED',
   bg: '#F4F7F8',
   surface: '#ffffff',
-  text: '#172B36',
-  textSecondary: '#49616B',
-  muted: '#82949B',
-  border: '#DCE7E9',
-  danger: '#D84C55',
-  dangerSoft: '#FDECEE',
-  success: '#188C72',
-  successSoft: '#DFF4EC',
   surfaceAlt: '#F8FBFC',
   text: '#14252F',
   textSecondary: '#49626D',
@@ -35,10 +24,8 @@ export const colors = {
 
 export const shadow = {
   shadowColor: '#173B47',
-  shadowOffset: { width: 0, height: 5 },
   shadowOffset: { width: 0, height: 4 },
   shadowOpacity: 0.08,
-  shadowRadius: 14,
   shadowRadius: 12,
   elevation: 3,
 };

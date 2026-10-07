@@ -13,15 +13,9 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import client from '../api/client';
-import { colors } from '../theme';
 import { colors, shadow, shadowSm, shadowMd } from '../theme';
 
 const FREQUENCY_OPTIONS = [
-  { id: 'diaria', label: 'Diaria', desc: 'Todos los días' },
-  { id: 'cada_x_horas', label: 'Cada X horas', desc: 'Intervalo fijo (ej. 8h)' },
-  { id: 'dias_especificos', label: 'Días específicos', desc: 'Días de la semana' },
-  { id: 'dias_alternos', label: 'Días alternos', desc: 'Un día sí, un día no' },
-  { id: 'semanal', label: 'Semanal', desc: 'Una vez por semana' },
   { id: 'diaria', label: 'Diaria', desc: 'Todos los días', icon: 'calendar-outline' },
   { id: 'cada_x_horas', label: 'Cada X horas', desc: 'Intervalo fijo (ej. 8h)', icon: 'time-outline' },
   { id: 'dias_especificos', label: 'Días específicos', desc: 'Días seleccionados de la semana', icon: 'options-outline' },
@@ -65,8 +59,8 @@ export default function ScheduleReminderScreen({ route, navigation }) {
   const [dose, setDose] = useState('');
   const [frequencyType, setFrequencyType] = useState('diaria');
   const [intervalHour, setIntervalHour] = useState(8);
-  const [selectedDays, setSelectedDays] = useState([1, 3, 5]); // Lun, Mié, Vie por defecto
-  const [weeklyDay, setWeeklyDay] = useState(1); // Lunes
+  const [selectedDays, setSelectedDays] = useState([1, 3, 5]);
+  const [weeklyDay, setWeeklyDay] = useState(1);
   const [times, setTimes] = useState(['08:00', '20:00']);
   const [customTimeInput, setCustomTimeInput] = useState('');
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -80,7 +74,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const [fetchingProfiles, setFetchingProfiles] = useState(false);
 
-  // Fetch all user profiles if not provided or to allow switching
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
@@ -99,7 +92,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
     fetchProfiles();
   }, []);
 
-  // Recalculate times when "cada_x_horas" changes
   const handleAutoGenerateTimes = (hours) => {
     const dosesPerDay = Math.floor(24 / hours);
     const startHour = 8;
@@ -119,7 +111,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
     }
   };
 
-  // Add a time to the schedule
   const handleAddTime = (timeToAdd) => {
     const cleanTime = timeToAdd.trim();
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -145,7 +136,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
     setTimes(times.filter((t) => t !== timeToRemove));
   };
 
-  // Toggle specific day of week
   const handleToggleDay = (dayKey) => {
     if (selectedDays.includes(dayKey)) {
       if (selectedDays.length <= 1) {
@@ -158,7 +148,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
     }
   };
 
-  // Pick Image from Gallery
   const handlePickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -189,7 +178,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
     }
   };
 
-  // Take photo with camera
   const handleTakePhoto = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -219,7 +207,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
     }
   };
 
-  // Previsualización del Calendario de Tomas (Próximos 7 días)
   const calendarPreview = useMemo(() => {
     const daysPreview = [];
     const today = new Date();
@@ -260,10 +247,8 @@ export default function ScheduleReminderScreen({ route, navigation }) {
     return daysPreview;
   }, [frequencyType, times, selectedDays, weeklyDay, intervalHour]);
 
-  // Handle Form Submission
   const handleSubmit = async () => {
     if (!selectedProfileId) {
-      Alert.alert('Error', 'Selecciona un perfil familiar');
       Alert.alert('Error', 'Selecciona un paciente o familiar');
       return;
     }
@@ -306,8 +291,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
       await client.post('/medications', payload);
 
       Alert.alert(
-        'Programación Exitosa',
-        `El recordatorio para "${medicationName.trim()}" ha sido registrado correctamente.`,
         '¡Recordatorio Creado!',
         `El tratamiento para "${medicationName.trim()}" se ha programado correctamente.`,
         [
@@ -327,9 +310,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
-      {/* HEADER CARD: PERFIL SELECCIONADO */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionHeaderTitle}>Perfil del Paciente / Familiar</Text>
       {/* 1. SELECCIÓN DE PACIENTE / PERFIL */}
       <View style={[styles.sectionCard, shadowSm]}>
         <View style={styles.sectionHeaderRow}>
@@ -343,10 +323,8 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         </View>
 
         {fetchingProfiles ? (
-          <ActivityIndicator color={colors.primary} />
           <ActivityIndicator color={colors.primary} style={{ marginVertical: 14 }} />
         ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.profileList}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.profileList}>
             {profiles.map((p) => {
               const isSelected = p.id === selectedProfileId;
@@ -357,11 +335,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
                   onPress={() => setSelectedProfileId(p.id)}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.profileAvatar, isSelected && styles.profileAvatarActive]}>
-                    <Text style={styles.profileAvatarText}>{p.name.charAt(0).toUpperCase()}</Text>
-                  </View>
-                  <View>
-                    <Text style={[styles.profileChipName, isSelected && styles.profileChipNameActive]}>
                   {p.photo ? (
                     <Image source={{ uri: p.photo }} style={styles.profileChipImg} />
                   ) : (
@@ -378,7 +351,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
                     >
                       {p.name}
                     </Text>
-                    <Text style={styles.profileChipType}>{p.type}</Text>
                     <Text style={[styles.profileChipType, isSelected && styles.profileChipTypeActive]}>
                       {p.type}
                     </Text>
@@ -395,9 +367,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         )}
       </View>
 
-      {/* DATOS DEL MEDICAMENTO */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionHeaderTitle}>Datos del Fármaco</Text>
       {/* 2. DATOS DEL FÁRMACO */}
       <View style={[styles.sectionCard, shadowSm]}>
         <View style={styles.sectionHeaderRow}>
@@ -410,14 +379,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
           </View>
         </View>
 
-        <Text style={styles.inputLabel}>Nombre del Medicamento *</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Ej: Paracetamol, Losartán, Insulina..."
-          value={medicationName}
-          onChangeText={setMedicationName}
-        />
-        {/* Quick Drug Suggestions */}
         <Text style={styles.inputLabel}>Nombre del medicamento *</Text>
         <View style={styles.inputWrap}>
           <Ionicons name="bandage-outline" size={18} color={colors.muted} style={styles.inputIcon} />
@@ -432,15 +393,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
 
         {/* Sugerencias Rápidas de Fármacos */}
         <View style={styles.chipsRow}>
-          {COMMON_DRUGS.map((drug) => (
-            <TouchableOpacity
-              key={drug}
-              style={[styles.suggestionChip, medicationName === drug && styles.suggestionChipActive]}
-              onPress={() => setMedicationName(drug)}
-            >
-              <Text style={[styles.suggestionChipText, medicationName === drug && { color: '#fff' }]}>{drug}</Text>
-            </TouchableOpacity>
-          ))}
           {COMMON_DRUGS.map((drug) => {
             const active = medicationName.toLowerCase() === drug.toLowerCase();
             return (
@@ -458,14 +410,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
           })}
         </View>
 
-        <Text style={[styles.inputLabel, { marginTop: 14 }]}>Dosis *</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Ej: 500 mg, 1 tableta, 10 ml..."
-          value={dose}
-          onChangeText={setDose}
-        />
-        {/* Quick Dose Suggestions */}
         <Text style={[styles.inputLabel, { marginTop: 16 }]}>Dosis *</Text>
         <View style={styles.inputWrap}>
           <Ionicons name="flask-outline" size={18} color={colors.muted} style={styles.inputIcon} />
@@ -480,15 +424,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
 
         {/* Sugerencias Rápidas de Dosis */}
         <View style={styles.chipsRow}>
-          {COMMON_DOSES.map((d) => (
-            <TouchableOpacity
-              key={d}
-              style={[styles.suggestionChip, dose === d && styles.suggestionChipActive]}
-              onPress={() => setDose(d)}
-            >
-              <Text style={[styles.suggestionChipText, dose === d && { color: '#fff' }]}>{d}</Text>
-            </TouchableOpacity>
-          ))}
           {COMMON_DOSES.map((d) => {
             const active = dose.toLowerCase() === d.toLowerCase();
             return (
@@ -507,9 +442,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         </View>
       </View>
 
-      {/* FRECUENCIA */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionHeaderTitle}>Frecuencia de Administración</Text>
       {/* 3. FRECUENCIA */}
       <View style={[styles.sectionCard, shadowSm]}>
         <View style={styles.sectionHeaderRow}>
@@ -555,11 +487,9 @@ export default function ScheduleReminderScreen({ route, navigation }) {
           })}
         </View>
 
-        {/* Sub-opciones según frecuencia */}
         {/* Sub-configuración según frecuencia */}
         {frequencyType === 'cada_x_horas' && (
           <View style={styles.subConfigBox}>
-            <Text style={styles.subConfigTitle}>¿Cada cuántas horas debe tomarse?</Text>
             <View style={styles.subConfigHeader}>
               <Ionicons name="hourglass-outline" size={16} color={colors.primaryDark} />
               <Text style={styles.subConfigTitle}>Intervalo entre tomas:</Text>
@@ -588,7 +518,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
 
         {frequencyType === 'dias_especificos' && (
           <View style={styles.subConfigBox}>
-            <Text style={styles.subConfigTitle}>Selecciona los días de la semana:</Text>
             <View style={styles.subConfigHeader}>
               <Ionicons name="calendar-number-outline" size={16} color={colors.primaryDark} />
               <Text style={styles.subConfigTitle}>Días activos de la semana:</Text>
@@ -614,7 +543,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
 
         {frequencyType === 'semanal' && (
           <View style={styles.subConfigBox}>
-            <Text style={styles.subConfigTitle}>Día de la semana en que se tomará:</Text>
             <View style={styles.subConfigHeader}>
               <Ionicons name="today-outline" size={16} color={colors.primaryDark} />
               <Text style={styles.subConfigTitle}>Día semanal para la dosis:</Text>
@@ -639,13 +567,9 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         )}
       </View>
 
-      {/* HORARIOS DE TOMA */}
-      <View style={styles.sectionCard}>
       {/* 4. HORARIOS DE TOMA */}
       <View style={[styles.sectionCard, shadowSm]}>
         <View style={styles.rowBetween}>
-          <Text style={styles.sectionHeaderTitle}>Horarios de Toma</Text>
-          <Text style={styles.badgeCounter}>{times.length} programado{times.length !== 1 ? 's' : ''}</Text>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.headerIconBadge}>
               <Ionicons name="time-outline" size={20} color={colors.primary} />
@@ -674,10 +598,8 @@ export default function ScheduleReminderScreen({ route, navigation }) {
               <TouchableOpacity
                 onPress={() => handleRemoveTime(t)}
                 style={styles.timeRemoveBtn}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.timeRemoveText}>X</Text>
                 <Ionicons name="close-circle" size={16} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -695,14 +617,12 @@ export default function ScheduleReminderScreen({ route, navigation }) {
             color={colors.primary}
           />
           <Text style={styles.addTimeButtonText}>
-            {showTimeModal ? 'Ocultar selector de horario' : '+ Añadir Horario'}
             {showTimeModal ? 'Ocultar selector de hora' : 'Añadir nuevo horario'}
           </Text>
         </TouchableOpacity>
 
         {showTimeModal && (
           <View style={styles.timeSelectorBox}>
-            <Text style={styles.subConfigTitle}>Horarios frecuentes:</Text>
             <Text style={styles.subConfigTitle}>Horas sugeridas frecuentes:</Text>
             <View style={styles.chipsRow}>
               {PRESET_TIMES.map((preset) => (
@@ -716,7 +636,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
               ))}
             </View>
 
-            <Text style={[styles.subConfigTitle, { marginTop: 10 }]}>O ingresa una hora exacta (HH:MM):</Text>
             <Text style={[styles.subConfigTitle, { marginTop: 12 }]}>
               O ingresa la hora exacta (HH:MM):
             </Text>
@@ -743,9 +662,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         )}
       </View>
 
-      {/* FOTO Y NOTAS */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionHeaderTitle}>Foto del Medicamento y Notas</Text>
       {/* 5. FOTO Y NOTAS */}
       <View style={[styles.sectionCard, shadowSm]}>
         <View style={styles.sectionHeaderRow}>
@@ -767,14 +683,12 @@ export default function ScheduleReminderScreen({ route, navigation }) {
                 onPress={() => setPhoto('')}
                 activeOpacity={0.8}
               >
-                <Text style={styles.removePhotoText}>Eliminar Foto</Text>
                 <Ionicons name="trash-outline" size={14} color={colors.danger} />
                 <Text style={styles.removePhotoText}>Quitar foto</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.noPhotoPlaceholder}>
-              <Text style={styles.noPhotoText}>Sin foto adjunta</Text>
               <Ionicons name="image-outline" size={32} color={colors.muted} />
               <Text style={styles.noPhotoText}>Sin imagen del fármaco</Text>
             </View>
@@ -802,7 +716,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
             <View style={styles.urlInputBox}>
               <TextInput
                 style={styles.textInput}
-                placeholder="https://ejemplo.com/farmaco.jpg"
                 placeholder="https://ejemplo.com/medicamento.jpg"
                 placeholderTextColor={colors.muted}
                 value={photoInputUrl}
@@ -824,11 +737,9 @@ export default function ScheduleReminderScreen({ route, navigation }) {
           )}
         </View>
 
-        <Text style={[styles.inputLabel, { marginTop: 15 }]}>Notas e Instrucciones (Opcional)</Text>
         <Text style={[styles.inputLabel, { marginTop: 16 }]}>Notas de administración (Opcional)</Text>
         <TextInput
           style={[styles.textInput, styles.notesInput]}
-          placeholder="Ej: Tomar con comida, beber un vaso lleno de agua, en ayunas..."
           placeholder="Ej: Tomar con un vaso de agua después del almuerzo..."
           placeholderTextColor={colors.muted}
           value={notes}
@@ -837,7 +748,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
           numberOfLines={3}
         />
 
-        <Text style={styles.quickNotesTitle}>Sugerencias rápidas:</Text>
         <Text style={styles.quickNotesTitle}>Indicaciones frecuentes:</Text>
         <View style={styles.chipsRow}>
           {QUICK_NOTES.map((qn) => (
@@ -856,12 +766,9 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         </View>
       </View>
 
-      {/* PREVISUALIZACIÓN DEL CALENDARIO DE TOMAS */}
-      <View style={[styles.sectionCard, styles.previewSectionCard]}>
       {/* 6. PREVISUALIZACIÓN DEL CALENDARIO DE TOMAS */}
       <View style={[styles.sectionCard, styles.previewSectionCard, shadowSm]}>
         <View style={styles.rowBetween}>
-          <Text style={styles.previewSectionTitle}>Previsualización del Calendario</Text>
           <View style={styles.sectionHeaderRow}>
             <View style={[styles.headerIconBadge, { backgroundColor: colors.primaryMuted }]}>
               <Ionicons name="calendar" size={18} color={colors.primary} />
@@ -898,12 +805,10 @@ export default function ScheduleReminderScreen({ route, navigation }) {
                 {day.hasDoses ? (
                   <View style={styles.intakeBadge}>
                     <Text style={styles.intakeBadgeText}>
-                      {day.doses.length} toma{day.doses.length !== 1 ? 's' : ''}
                       {day.doses.length} {day.doses.length === 1 ? 'dosis' : 'dosis'}
                     </Text>
                   </View>
                 ) : (
-                  <Text style={styles.noDoseDayText}>Sin tomas programadas</Text>
                   <Text style={styles.noDoseDayText}>Sin tomas</Text>
                 )}
               </View>
@@ -915,7 +820,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
                       <Ionicons name="time-outline" size={12} color={colors.primary} style={{ marginRight: 3 }} />
                       <Text style={styles.doseScheduleTime}>{doseTime}</Text>
                       <Text style={styles.doseScheduleAmount}>
-                        {dose || 'Dosis indicada'}
                         ({dose || 'Dosis'})
                       </Text>
                     </View>
@@ -927,11 +831,9 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         </View>
       </View>
 
-      {/* BOTÓN GUARDAR */}
       {/* BOTÓN GUARDAR RECORDATORIO */}
       <View style={styles.footerContainer}>
         <TouchableOpacity
-          style={[styles.saveButton, loading && styles.saveButtonDisabled]}
           style={[styles.saveButton, shadowMd, loading && styles.saveButtonDisabled]}
           onPress={handleSubmit}
           disabled={loading}
@@ -940,7 +842,6 @@ export default function ScheduleReminderScreen({ route, navigation }) {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.saveButtonText}>Guardar y Programar Recordatorio</Text>
             <>
               <Ionicons name="checkmark-circle-outline" size={22} color="#fff" />
               <Text style={styles.saveButtonText}>Guardar y Activar Recordatorio</Text>
@@ -958,16 +859,9 @@ const styles = StyleSheet.create({
 
   sectionCard: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 16,
     borderRadius: 22,
     padding: 18,
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
@@ -986,11 +880,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   sectionHeaderTitle: {
-    fontSize: 17,
     fontSize: 16,
     fontWeight: '800',
-    color: colors.text,
-    marginBottom: 12,
     color: colors.primaryDark,
     letterSpacing: -0.2,
   },
@@ -1003,14 +894,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
     marginBottom: 12,
   },
   badgeCounter: {
-    backgroundColor: '#CCFBF1',
-    color: '#0D9488',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
     backgroundColor: colors.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1019,7 +905,6 @@ const styles = StyleSheet.create({
   badgeCounterText: {
     color: colors.primary,
     fontSize: 12,
-    fontWeight: '600',
     fontWeight: '800',
   },
   helperText: {
@@ -1029,8 +914,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Profiles Horizontal
-  profileList: { flexDirection: 'row', marginTop: 4 },
   // Perfiles Horizontales
   profileList: { flexDirection: 'row', paddingVertical: 4 },
   profileChip: {
@@ -1038,19 +921,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 10,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#e2e8f0',
     borderColor: colors.border,
     marginRight: 10,
-    backgroundColor: '#f8fafc',
     backgroundColor: colors.surfaceAlt,
     maxWidth: 180,
   },
   profileChipActive: {
-    borderColor: '#0D9488',
-    backgroundColor: '#F0FDFA',
     borderColor: colors.primary,
     backgroundColor: colors.primaryLight,
   },
@@ -1061,10 +939,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   profileAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#cbd5e1',
     width: 36,
     height: 36,
     borderRadius: 12,
@@ -1074,13 +948,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   profileAvatarActive: {
-    backgroundColor: '#0D9488',
     backgroundColor: colors.primary,
   },
-  profileAvatarText: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
-  profileChipName: { fontSize: 14, fontWeight: '600', color: '#334155' },
-  profileChipNameActive: { color: '#0D9488' },
-  profileChipType: { fontSize: 11, color: '#64748b', textTransform: 'capitalize' },
   profileAvatarText: { color: colors.textSecondary, fontWeight: '800', fontSize: 14 },
   profileAvatarTextActive: { color: '#ffffff' },
   profileChipName: { fontSize: 13, fontWeight: '800', color: colors.text },
@@ -1099,9 +968,6 @@ const styles = StyleSheet.create({
 
   // Inputs
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
     fontSize: 13,
     fontWeight: '700',
     color: colors.textSecondary,
@@ -1120,20 +986,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
     flex: 1,
     paddingVertical: 12,
     fontSize: 15,
-    backgroundColor: '#f9fafb',
-    color: '#111827',
     color: colors.text,
   },
   notesInput: {
-    minHeight: 70,
     minHeight: 76,
     textAlignVertical: 'top',
     paddingHorizontal: 12,
@@ -1144,7 +1002,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
   },
 
-  // Chips
   // Sugerencias / Chips
   chipsRow: {
     flexDirection: 'row',
@@ -1153,12 +1010,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   suggestionChip: {
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-    marginRight: 6,
-    marginBottom: 6,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surfaceAlt,
@@ -1166,19 +1017,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     borderColor: colors.border,
   },
   suggestionChipActive: {
-    backgroundColor: '#0D9488',
-    borderColor: '#0D9488',
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   suggestionChipText: {
     fontSize: 12,
-    color: '#475569',
-    fontWeight: '500',
     color: colors.textSecondary,
     fontWeight: '600',
   },
@@ -1188,16 +1034,12 @@ const styles = StyleSheet.create({
   },
   quickNotesTitle: {
     fontSize: 12,
-    color: '#64748b',
-    fontWeight: '600',
-    marginTop: 10,
     color: colors.muted,
     fontWeight: '700',
     marginTop: 12,
     marginBottom: 4,
   },
 
-  // Frequencies
   // Frecuencias
   frequencyList: { marginTop: 4 },
   frequencyCard: {
@@ -1205,23 +1047,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderWidth: 1.5,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
     borderColor: colors.border,
     borderRadius: 14,
     marginBottom: 8,
-    backgroundColor: '#ffffff',
     backgroundColor: colors.surface,
   },
   frequencyCardActive: {
-    borderColor: '#0D9488',
-    backgroundColor: '#F0FDFA',
     borderColor: colors.primary,
     backgroundColor: colors.primaryLight,
   },
-  frequencyTitle: { fontSize: 15, fontWeight: '700', color: '#1f2937' },
-  frequencyTitleActive: { color: '#0D9488' },
-  frequencyDesc: { fontSize: 12, color: '#6b7280', marginTop: 2 },
   freqIconBox: {
     width: 36,
     height: 36,
@@ -1242,32 +1076,25 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#d1d5db',
     borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  radioCircleActive: { borderColor: '#0D9488' },
   radioCircleActive: { borderColor: colors.primary },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#0D9488',
     backgroundColor: colors.primary,
   },
 
   // Sub Config Box
   subConfigBox: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 10,
-    padding: 12,
     backgroundColor: colors.surfaceAlt,
     borderRadius: 14,
     padding: 14,
     marginTop: 6,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     borderColor: colors.border,
   },
   subConfigHeader: {
@@ -1278,9 +1105,6 @@ const styles = StyleSheet.create({
   },
   subConfigTitle: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 8,
     fontWeight: '700',
     color: colors.primaryDark,
   },
@@ -1288,32 +1112,19 @@ const styles = StyleSheet.create({
   hourChip: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 9,
     paddingVertical: 10,
     marginHorizontal: 3,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
     backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 12,
   },
-  hourChipActive: { backgroundColor: '#0D9488', borderColor: '#0D9488' },
-  hourChipText: { fontSize: 13, fontWeight: '700', color: '#475569' },
   hourChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   hourChipText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
   hourChipTextActive: { color: '#ffffff' },
 
   daysRow: { flexDirection: 'row', justifyContent: 'space-between' },
   dayButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -1323,41 +1134,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dayButtonActive: { backgroundColor: '#0D9488', borderColor: '#0D9488' },
-  dayButtonText: { fontSize: 12, fontWeight: '700', color: '#475569' },
   dayButtonActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   dayButtonText: { fontSize: 12, fontWeight: '800', color: colors.textSecondary },
   dayButtonTextActive: { color: '#ffffff' },
 
-  // Times
-  timesContainer: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 },
   // Horarios
   timesContainer: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12, gap: 8 },
   timeTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#CCFBF1',
-    borderColor: '#99F6E4',
-    borderWidth: 1,
-    borderRadius: 20,
     backgroundColor: colors.primaryLight,
     borderColor: colors.primarySoft,
     borderWidth: 1.5,
     borderRadius: 24,
     paddingHorizontal: 12,
-    paddingVertical: 7,
-    marginRight: 8,
-    marginBottom: 8,
     paddingVertical: 8,
   },
-  timeTagText: { fontSize: 15, fontWeight: '700', color: '#0F766E' },
   timeTagText: { fontSize: 14, fontWeight: '800', color: colors.primaryDark },
   timeRemoveBtn: { marginLeft: 8, padding: 2 },
-  timeRemoveText: { fontSize: 13, color: '#888', fontWeight: 'bold' },
 
   addTimeButton: {
-    borderWidth: 1,
-    borderColor: '#0D9488',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1365,52 +1161,33 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.primary,
     borderStyle: 'dashed',
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
     borderRadius: 14,
     paddingVertical: 12,
     backgroundColor: colors.surfaceAlt,
   },
-  addTimeButtonText: { color: '#0D9488', fontSize: 14, fontWeight: '700' },
   addTimeButtonText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
   timeSelectorBox: {
     marginTop: 12,
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderRadius: 10,
     backgroundColor: colors.surfaceAlt,
     padding: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     borderColor: colors.border,
   },
   presetChip: {
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
     borderColor: colors.border,
     marginRight: 6,
     marginBottom: 6,
   },
-  presetChipText: { fontSize: 13, fontWeight: '600', color: '#1e293b' },
-  customTimeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  customTimeInput: { flex: 1, marginRight: 8, height: 42 },
   presetChipText: { fontSize: 13, fontWeight: '700', color: colors.text },
   customTimeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   customTimeInput: { flex: 1, marginRight: 8, backgroundColor: colors.surface },
   customTimeAddBtn: {
-    backgroundColor: '#0D9488',
-    paddingHorizontal: 16,
-    height: 42,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1418,20 +1195,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     height: 46,
     justifyContent: 'center',
-    borderRadius: 8,
     borderRadius: 14,
   },
   customTimeAddBtnText: { color: '#ffffff', fontWeight: '700', fontSize: 14 },
 
-  // Photo
   // Foto
   photoContainer: { marginTop: 4 },
   noPhotoPlaceholder: {
-    height: 70,
-    backgroundColor: '#f8fafc',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
     height: 90,
     backgroundColor: colors.surfaceAlt,
     borderRadius: 14,
@@ -1440,31 +1210,21 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
     marginBottom: 12,
     gap: 6,
   },
-  noPhotoText: { fontSize: 13, color: '#94a3b8' },
   noPhotoText: { fontSize: 13, color: colors.muted, fontWeight: '600' },
   previewImageWrapper: {
     alignItems: 'center',
-    marginBottom: 10,
     marginBottom: 12,
   },
   previewImage: {
     width: '100%',
-    height: 160,
-    borderRadius: 10,
     height: 170,
     borderRadius: 14,
     resizeMode: 'cover',
   },
   removePhotoBtn: {
-    marginTop: 6,
-    backgroundColor: '#fee2e2',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -1474,15 +1234,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
   },
-  removePhotoText: { color: '#ef4444', fontSize: 12, fontWeight: '600' },
-  photoActionRow: { flexDirection: 'row', justifyContent: 'space-between' },
   removePhotoText: { color: colors.danger, fontSize: 12, fontWeight: '700' },
   photoActionRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
   photoActionBtn: {
     flex: 1,
-    backgroundColor: '#0D9488',
-    paddingVertical: 9,
-    borderRadius: 8,
     backgroundColor: colors.primary,
     paddingVertical: 11,
     borderRadius: 12,
@@ -1492,15 +1247,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
-  photoActionBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '600' },
   photoActionBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
   photoActionBtnSecondary: {
     flex: 0.8,
-    backgroundColor: '#f1f5f9',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    paddingVertical: 9,
-    borderRadius: 8,
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -1512,72 +1261,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
   },
-  photoActionBtnSecondaryText: { color: '#334155', fontSize: 13, fontWeight: '600' },
   photoActionBtnSecondaryText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
   urlInputBox: { marginTop: 10 },
   urlApplyBtn: {
-    backgroundColor: '#10b981',
-    paddingVertical: 8,
-    borderRadius: 8,
     backgroundColor: colors.success,
     paddingVertical: 10,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 6,
   },
-  urlApplyBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
   urlApplyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 
-  // Preview Section
   // Previsualización Calendario
   previewSectionCard: {
-    borderColor: '#5EEAD4',
-    borderWidth: 1,
-    backgroundColor: '#F0FDFA',
     borderColor: colors.primarySoft,
     backgroundColor: '#FAFDFD',
   },
   previewSectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#0F766E',
     fontWeight: '800',
     color: colors.primaryDark,
   },
   liveBadge: {
-    backgroundColor: '#0D9488',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  liveBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
-  calendarTimeline: { marginTop: 8 },
   liveBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   calendarTimeline: { marginTop: 6 },
   calendarDayCard: {
-    borderRadius: 10,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
-    borderWidth: 1,
     borderWidth: 1.5,
   },
   calendarDayActive: {
-    backgroundColor: '#ffffff',
-    borderColor: '#bae6fd',
     backgroundColor: colors.surface,
     borderColor: colors.primarySoft,
   },
   calendarDayInactive: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#e2e8f0',
-    opacity: 0.7,
     backgroundColor: colors.surfaceAlt,
     borderColor: colors.borderLight,
     opacity: 0.65,
@@ -1588,21 +1313,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateBadge: { flexDirection: 'row', alignItems: 'center' },
-  calendarDayName: { fontSize: 14, fontWeight: '700', color: '#1e293b', marginRight: 6 },
-  calendarDateText: { fontSize: 13, color: '#64748b' },
   calendarDayName: { fontSize: 14, fontWeight: '800', color: colors.text, marginRight: 6 },
   calendarDateText: { fontSize: 12, color: colors.muted },
   intakeBadge: {
-    backgroundColor: '#dcfce7',
     backgroundColor: colors.successSoft,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
     paddingVertical: 3,
     borderRadius: 8,
   },
-  intakeBadgeText: { color: '#15803d', fontSize: 12, fontWeight: '700' },
-  noDoseDayText: { fontSize: 12, color: '#94a3b8', fontStyle: 'italic' },
   intakeBadgeText: { color: colors.success, fontSize: 11, fontWeight: '800' },
   noDoseDayText: { fontSize: 11, color: colors.muted, fontStyle: 'italic' },
   dosesListRow: {
@@ -1611,52 +1329,33 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
     borderTopColor: colors.borderLight,
     gap: 6,
   },
   doseScheduleTag: {
-    backgroundColor: '#eff6ff',
-    borderRadius: 6,
+    backgroundColor: colors.primaryLight,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primaryLight,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    marginRight: 6,
-    marginBottom: 4,
     borderWidth: 1,
-    borderColor: '#dbeafe',
     borderColor: colors.primarySoft,
   },
-  doseScheduleTime: { fontSize: 12, fontWeight: '700', color: '#1d4ed8' },
-  doseScheduleAmount: { fontSize: 11, color: '#475569', marginTop: 1 },
   doseScheduleTime: { fontSize: 12, fontWeight: '800', color: colors.primaryDark },
   doseScheduleAmount: { fontSize: 11, color: colors.muted, marginLeft: 3 },
 
-  // Footer & Save
-  footerContainer: { marginTop: 8, marginBottom: 20 },
   // Footer y Guardar
   footerContainer: { marginTop: 8, marginBottom: 24 },
   saveButton: {
-    backgroundColor: '#10b981',
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
     paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
     borderRadius: 16,
   },
   saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
   saveButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
 });

@@ -13,7 +13,6 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import client from '../api/client';
-import { colors, shadow } from '../theme';
 import { colors, shadow, shadowSm } from '../theme';
 
 const PROFILE_TYPES = [
@@ -31,7 +30,6 @@ export default function ProfileFormScreen({ route, navigation }) {
     profile ? profile.birthdate.split('T')[0] : ''
   );
   const [type, setType] = useState(profile ? profile.type : 'adulto');
-
   const [loading, setLoading] = useState(false);
 
   const handlePickImage = async () => {
@@ -100,15 +98,12 @@ export default function ProfileFormScreen({ route, navigation }) {
   };
 
   const handleSubmit = async () => {
-    if (!name || !birthdate || !type) {
     if (!name.trim() || !birthdate.trim() || !type) {
       Alert.alert('Error', 'Nombre, fecha de nacimiento y tipo son obligatorios');
       return;
     }
 
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(birthdate)) {
-      Alert.alert('Error', 'Formato de fecha inválido. Usa YYYY-MM-DD');
     if (!dateRegex.test(birthdate.trim())) {
       Alert.alert('Formato inválido', 'Usa el formato AAAA-MM-DD (ejemplo: 1990-05-15)');
       return;
@@ -116,7 +111,6 @@ export default function ProfileFormScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      const data = { name, photo, birthdate, type };
       const data = {
         name: name.trim(),
         photo: photo || '',
@@ -126,16 +120,13 @@ export default function ProfileFormScreen({ route, navigation }) {
 
       if (profile) {
         await client.put(`/profiles/${profile.id}`, data);
-        Alert.alert('Éxito', 'Perfil actualizado');
         Alert.alert('Éxito', 'Perfil actualizado correctamente');
       } else {
         await client.post('/profiles', data);
-        Alert.alert('Éxito', 'Perfil creado');
         Alert.alert('Éxito', 'Perfil creado correctamente');
       }
       navigation.goBack();
     } catch (error) {
-      const message = error.response?.data?.error || 'Ocurrió un error';
       const message = error.response?.data?.error || 'Ocurrió un error al guardar el perfil';
       Alert.alert('Error', message);
     } finally {
@@ -144,19 +135,13 @@ export default function ProfileFormScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={[styles.card, shadow]}>
         {/* AVATAR / FOTO */}
         <View style={styles.avatarSection}>
-          {photo ? (
-            <View style={styles.avatarWrapper}>
           <View style={styles.avatarWrapper}>
             {photo ? (
               <Image source={{ uri: photo }} style={styles.avatarPreview} />
-              <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setPhoto('')}>
-                <Text style={styles.removePhotoText}>Quitar foto</Text>
-              </TouchableOpacity>
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarPlaceholderText}>
@@ -167,13 +152,6 @@ export default function ProfileFormScreen({ route, navigation }) {
             <View style={styles.avatarBadge}>
               <Ionicons name="camera" size={14} color="#fff" />
             </View>
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarPlaceholderText}>
-                {name ? name.charAt(0).toUpperCase() : '?'}
-              </Text>
-            </View>
-          )}
           </View>
 
           {photo ? (
@@ -188,13 +166,10 @@ export default function ProfileFormScreen({ route, navigation }) {
           ) : null}
 
           <View style={styles.photoActionsRow}>
-            <TouchableOpacity style={styles.photoBtn} onPress={handleTakePhoto}>
             <TouchableOpacity style={styles.photoBtn} onPress={handleTakePhoto} activeOpacity={0.8}>
               <Ionicons name="camera-outline" size={16} color="#fff" />
               <Text style={styles.photoBtnText}>Cámara</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.photoBtn} onPress={handlePickImage}>
-              <Ionicons name="image-outline" size={16} color="#fff" />
             <TouchableOpacity style={styles.photoBtn} onPress={handlePickImage} activeOpacity={0.8}>
               <Ionicons name="images-outline" size={16} color="#fff" />
               <Text style={styles.photoBtnText}>Galería</Text>
@@ -202,14 +177,6 @@ export default function ProfileFormScreen({ route, navigation }) {
           </View>
         </View>
 
-        <Text style={styles.label}>Nombre</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder="Ej: Juan Pérez"
-          placeholderTextColor={colors.muted}
-        />
         {/* NOMBRE */}
         <Text style={styles.label}>Nombre y Apellido *</Text>
         <View style={styles.inputContainer}>
@@ -223,14 +190,6 @@ export default function ProfileFormScreen({ route, navigation }) {
           />
         </View>
 
-        <Text style={styles.label}>Fecha de nacimiento (YYYY-MM-DD)</Text>
-        <TextInput
-          style={styles.input}
-          value={birthdate}
-          onChangeText={setBirthdate}
-          placeholder="Ej: 1990-05-15"
-          placeholderTextColor={colors.muted}
-        />
         {/* FECHA DE NACIMIENTO */}
         <Text style={styles.label}>Fecha de nacimiento * (AAAA-MM-DD)</Text>
         <View style={styles.inputContainer}>
@@ -246,21 +205,9 @@ export default function ProfileFormScreen({ route, navigation }) {
           />
         </View>
 
-        <Text style={styles.label}>Tipo de perfil</Text>
         {/* TIPO DE PERFIL */}
         <Text style={styles.label}>Categoría de paciente *</Text>
         <View style={styles.typeContainer}>
-          {['adulto mayor', 'adulto', 'niño'].map((t) => (
-            <TouchableOpacity
-              key={t}
-              style={[styles.typeBtn, type === t && styles.typeBtnActive]}
-              onPress={() => setType(t)}
-            >
-              <Text style={[styles.typeBtnText, type === t && styles.typeBtnTextActive]}>
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
           {PROFILE_TYPES.map((t) => {
             const isActive = type === t.id;
             return (
@@ -295,15 +242,11 @@ export default function ProfileFormScreen({ route, navigation }) {
 
         {/* BOTÓN GUARDAR */}
         <TouchableOpacity
-          style={[styles.button, loading && { opacity: 0.65 }]}
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleSubmit}
           disabled={loading}
           activeOpacity={0.85}
         >
-          <Text style={styles.buttonText}>
-            {loading ? 'Guardando...' : 'Guardar perfil'}
-          </Text>
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
@@ -321,7 +264,6 @@ export default function ProfileFormScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, backgroundColor: colors.bg, flexGrow: 1 },
   container: {
     padding: 16,
     backgroundColor: colors.bg,
@@ -330,7 +272,6 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 22,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
@@ -338,12 +279,9 @@ const styles = StyleSheet.create({
   },
   avatarSection: {
     alignItems: 'center',
-    marginBottom: 22,
-    paddingBottom: 18,
     marginBottom: 24,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
     borderBottomColor: colors.borderLight,
   },
   avatarWrapper: {
@@ -352,9 +290,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatarPreview: {
-    width: 108,
-    height: 108,
-    borderRadius: 32,
     width: 104,
     height: 104,
     borderRadius: 34,
@@ -363,22 +298,17 @@ const styles = StyleSheet.create({
     borderColor: colors.surface,
   },
   avatarPlaceholder: {
-    width: 108,
-    height: 108,
-    borderRadius: 32,
     width: 104,
     height: 104,
     borderRadius: 34,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
     borderWidth: 3,
     borderColor: colors.surface,
   },
   avatarPlaceholderText: {
     color: '#fff',
-    fontSize: 40,
     fontSize: 42,
     fontWeight: '800',
   },
@@ -404,7 +334,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dangerSoft,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 999,
     borderRadius: 20,
   },
   removePhotoText: {
@@ -422,15 +351,12 @@ const styles = StyleSheet.create({
   photoBtn: {
     flex: 1,
     backgroundColor: colors.primary,
-    paddingVertical: 11,
-    borderRadius: 12,
     paddingVertical: 12,
     borderRadius: 14,
     alignItems: 'center',
     marginHorizontal: 4,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 6,
     gap: 8,
   },
   photoBtnText: {
@@ -440,26 +366,21 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: '800',
     fontWeight: '700',
     marginBottom: 8,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
-  input: {
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 14,
-    padding: 13,
     backgroundColor: colors.surfaceAlt,
     paddingHorizontal: 14,
     marginBottom: 18,
-    fontSize: 16,
-    backgroundColor: colors.bg,
   },
   inputIcon: {
     marginRight: 10,
@@ -494,16 +415,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    marginHorizontal: 4,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.bg,
     marginBottom: 6,
   },
-  typeBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  typeBtnText: { color: colors.muted, fontSize: 12, fontWeight: '800', textAlign: 'center' },
-  typeBtnTextActive: { color: '#fff' },
   typeIconBoxActive: {
     backgroundColor: '#ffffff',
   },
@@ -531,9 +447,6 @@ const styles = StyleSheet.create({
     right: 6,
   },
   button: {
-    backgroundColor: colors.success,
-    padding: 16,
-    borderRadius: 14,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
