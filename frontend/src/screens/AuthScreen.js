@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -14,9 +13,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import client, { setAuthToken } from '../api/client';
-import { colors, shadow } from '../theme';
+import { useTheme, makeStyles, shadow } from '../theme';
 
 export default function AuthScreen({ onLogin }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -183,7 +184,7 @@ export default function AuthScreen({ onLogin }) {
 
             {/* FOOTER PRIVACIDAD */}
             <View style={styles.securityBox}>
-              <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
+              <Ionicons name="shield-checkmark-outline" size={16} color={colors.primaryText} />
               <Text style={styles.securityText}>
                 Tus datos de salud y tratamientos se almacenan de forma segura
               </Text>
@@ -195,7 +196,7 @@ export default function AuthScreen({ onLogin }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   safe: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' },
   blob: {
     position: 'absolute',
@@ -367,4 +368,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
   },
-});
+}));

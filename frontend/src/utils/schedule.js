@@ -17,26 +17,30 @@ const parseFrequencyValue = (value) => {
   }
 };
 
+// Fecha local en formato AAAA-MM-DD (toISOString usaría UTC y podría dar el día siguiente)
+export const toDateKey = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+// Días de la semana (0 = domingo) en que aplica el tratamiento; null si es todos los días
+export const getWeekdays = (med) => {
+  const value = parseFrequencyValue(med.frequency_value);
+  if (med.frequency_type === 'dias_especificos' && Array.isArray(value)) return value.map(Number);
+  if (med.frequency_type === 'semanal' && value != null) return [Number(value)];
+  return null;
+};
+
 // Indica si un medicamento tiene tomas programadas en la fecha dada
 export const takesOnDate = (med, date) => {
-  const weekday = date.getDay();
-  const value = parseFrequencyValue(med.frequency_value);
-
-  switch (med.frequency_type) {
-    case 'dias_alternos': {
-      const start = parseLocalDate(med.start_date);
-      if (!start) return true;
-      const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const diff = Math.round((day - start) / DAY_MS);
-      return diff >= 0 && diff % 2 === 0;
-    }
-    case 'dias_especificos':
-      return Array.isArray(value) ? value.map(Number).includes(weekday) : true;
-    case 'semanal':
-      return value != null ? Number(value) === weekday : true;
-    default:
-      return true;
+  if (med.frequency_type === 'dias_alternos') {
+    const start = parseLocalDate(med.start_date);
+    if (!start) return true;
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diff = Math.round((day - start) / DAY_MS);
+    return diff >= 0 && diff % 2 === 0;
   }
+
+  const weekdays = getWeekdays(med);
+  return !weekdays || weekdays.includes(date.getDay());
 };
 
 const toMinutes = (time) => {
@@ -44,29 +48,31 @@ const toMinutes = (time) => {
   return h * 60 + (m || 0);
 };
 
-// Lista ordenada de las tomas que faltan hoy y, si no quedan, las de mañana
-export const getUpcomingDoses = (medications, now = new Date()) => {
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+export const addDays = (date, days) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 
-  const collect = (date, dayOffset, fromMinutes) =>
-    medications
-      .filter((med) => takesOnDate(med, date))
-      .flatMap((med) =>
-        (med.times || [])
-          .filter((t) => toMinutes(t) >= fromMinutes)
-          .map((t) => ({
-            med,
-            time: t,
-            dayOffset,
-            minutesUntil: dayOffset * 24 * 60 + toMinutes(t) - nowMinutes,
-          }))
-      )
-      .sort((a, b) => a.minutesUntil - b.minutesUntil);
+// Momentos del día en que se agrupan las tomas (hora de inicio incluida, de fin excluida)
+export const DAY_SEGMENTS = [
+  { id: 'madrugada', label: 'Madrugada', from: 0, to: 6 },
+  { id: 'manana', label: 'Mañana', from: 6, to: 12 },
+  { id: 'tarde', label: 'Tarde', from: 12, to: 19 },
+  { id: 'noche', label: 'Noche', from: 19, to: 24 },
+];
 
-  const today = collect(now, 0, nowMinutes);
-  return { today, upcoming: today.length ? today : collect(tomorrow, 1, 0) };
-};
+// Todas las tomas programadas en una fecha, ordenadas por hora. La clave identifica
+// cada toma dentro del día (medicamento + horario)
+export const getDosesForDate = (medications, date) =>
+  medications
+    .filter((med) => takesOnDate(med, date))
+    .flatMap((med) =>
+      (med.times || []).map((time) => ({
+        key: `${med.id}@${time}`,
+        med,
+        time,
+        minutes: toMinutes(time),
+      }))
+    )
+    .sort((a, b) => a.minutes - b.minutes);
 
 export const formatTimeUntil = (minutes) => {
   if (minutes <= 0) return 'Ahora';

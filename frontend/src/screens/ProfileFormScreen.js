@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   ScrollView,
   ActivityIndicator,
@@ -12,8 +11,9 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import client from '../api/client';
+import { useAppData } from '../appData';
 import Avatar from '../components/Avatar';
-import { colors, shadow, getProfileTone } from '../theme';
+import { useTheme, makeStyles, shadow, getProfileTone } from '../theme';
 import { formatAge } from '../utils/schedule';
 
 const PROFILE_TYPES = [
@@ -31,6 +31,8 @@ const formatBirthdateInput = (text) => {
 };
 
 export default function ProfileFormScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const profile = route.params?.profile;
 
   const [name, setName] = useState(profile ? profile.name : '');
@@ -40,6 +42,7 @@ export default function ProfileFormScreen({ route, navigation }) {
   );
   const [type, setType] = useState(profile ? profile.type : 'adulto');
   const [loading, setLoading] = useState(false);
+  const { refresh } = useAppData();
   const age = birthdate.length === 10 ? formatAge(birthdate) : null;
 
   const handlePickImage = async () => {
@@ -54,7 +57,7 @@ export default function ProfileFormScreen({ route, navigation }) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.6,
@@ -135,6 +138,7 @@ export default function ProfileFormScreen({ route, navigation }) {
         await client.post('/profiles', data);
         Alert.alert('Éxito', 'Perfil creado correctamente');
       }
+      refresh();
       navigation.goBack();
     } catch (error) {
       const message = error.response?.data?.error || 'Ocurrió un error al guardar el perfil';
@@ -222,7 +226,7 @@ export default function ProfileFormScreen({ route, navigation }) {
         <View style={styles.typeContainer}>
           {PROFILE_TYPES.map((t) => {
             const isActive = type === t.id;
-            const tone = getProfileTone(t.id);
+            const tone = getProfileTone(t.id, colors);
             return (
               <TouchableOpacity
                 key={t.id}
@@ -237,18 +241,18 @@ export default function ProfileFormScreen({ route, navigation }) {
                   <Ionicons
                     name={tone.icon}
                     size={20}
-                    color={isActive ? tone.color : colors.muted}
+                    color={isActive ? tone.text : colors.muted}
                   />
                 </View>
                 <Text style={[styles.typeBtnText, isActive && styles.typeBtnTextActive]}>
                   {t.label}
                 </Text>
-                <Text style={[styles.typeDesc, isActive && { color: tone.color }]}>
+                <Text style={[styles.typeDesc, isActive && { color: tone.text }]}>
                   {t.desc}
                 </Text>
                 {isActive && (
                   <View style={styles.typeActiveCheck}>
-                    <Ionicons name="checkmark-circle" size={16} color={tone.color} />
+                    <Ionicons name="checkmark-circle" size={16} color={tone.text} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -279,7 +283,7 @@ export default function ProfileFormScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: {
     padding: 16,
     backgroundColor: colors.bg,
@@ -316,11 +320,11 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: colors.primaryDark,
+    backgroundColor: colors.hero,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: colors.surface,
   },
   removePhotoBtn: {
     marginTop: 10,
@@ -389,7 +393,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   ageHintText: {
-    color: colors.primary,
+    color: colors.primaryText,
     fontSize: 12,
     fontWeight: '800',
   },
@@ -425,7 +429,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   typeIconBoxActive: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
   },
   typeBtnText: {
     color: colors.textSecondary,
@@ -459,4 +463,4 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.65 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-});
+}));

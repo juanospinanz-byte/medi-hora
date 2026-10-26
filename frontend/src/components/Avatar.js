@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
-import { getProfileTone } from '../theme';
+import { getProfileTone, useTheme } from '../theme';
 
 export default function Avatar({ name, photo, type, size = 48, style }) {
-  const tone = getProfileTone(type);
+  const { colors } = useTheme();
+  const tone = getProfileTone(type, colors);
   const box = { width: size, height: size, borderRadius: size * 0.34 };
 
   if (photo) {

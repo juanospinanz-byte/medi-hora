@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   ScrollView,
   Image,
@@ -14,8 +13,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import client from '../api/client';
+import { useAppData } from '../appData';
 import Avatar from '../components/Avatar';
-import { colors, shadowSm, shadowMd } from '../theme';
+import { useTheme, makeStyles, shadowSm, shadowMd } from '../theme';
+import { toDateKey } from '../utils/schedule';
 
 const FREQUENCY_OPTIONS = [
   { id: 'diaria', label: 'Diaria', desc: 'Todos los días', icon: 'calendar-outline' },
@@ -51,6 +52,7 @@ const COMMON_DRUGS = ['Paracetamol', 'Ibuprofeno', 'Amoxicilina', 'Omeprazol', '
 const COMMON_DOSES = ['500 mg', '1 comprimido', '1 cápsula', '10 ml', '1 sobre'];
 
 function SectionHeader({ step, title, subtitle, right }) {
+  const styles = useStyles();
   return (
     <View style={styles.sectionHeaderRow}>
       <View style={styles.stepBadge}>
@@ -66,6 +68,8 @@ function SectionHeader({ step, title, subtitle, right }) {
 }
 
 export default function ScheduleReminderScreen({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const initialProfile = route.params?.profile;
   const insets = useSafeAreaInsets();
 
@@ -90,6 +94,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
   const [notes, setNotes] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const { refresh } = useAppData();
   const [fetchingProfiles, setFetchingProfiles] = useState(false);
 
   useEffect(() => {
@@ -175,7 +180,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.6,
@@ -301,16 +306,21 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         frequency_type: frequencyType,
         frequency_value: frequencyValue,
         times: times,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: toDateKey(new Date()),
         photo: photo || null,
         notes: notes.trim() || null,
       };
 
       await client.post('/medications', payload);
+      refresh();
+
+      const timesText =
+        times.length > 1 ? `${times.slice(0, -1).join(', ')} y ${times[times.length - 1]}` : times[0];
 
       Alert.alert(
         '¡Recordatorio Creado!',
-        `El tratamiento para "${medicationName.trim()}" se ha programado correctamente.`,
+        `El tratamiento para "${medicationName.trim()}" se ha programado correctamente. ` +
+          `Recibirás una notificación a las ${timesText}.`,
         [
           {
             text: 'Aceptar',
@@ -338,7 +348,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
           <SectionHeader step={1} title="Paciente / Familiar" subtitle="¿A quién va asignado este tratamiento?" />
 
           {fetchingProfiles ? (
-            <ActivityIndicator color={colors.primary} style={{ marginVertical: 14 }} />
+            <ActivityIndicator color={colors.primaryText} style={{ marginVertical: 14 }} />
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.profileList}>
               {profiles.map((p) => {
@@ -465,7 +475,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
                     <Ionicons
                       name={item.icon}
                       size={20}
-                      color={active ? colors.primary : colors.muted}
+                      color={active ? colors.primaryText : colors.muted}
                     />
                   </View>
 
@@ -607,7 +617,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
             <Ionicons
               name={showTimeModal ? 'chevron-up' : 'add-circle-outline'}
               size={18}
-              color={colors.primary}
+              color={colors.primaryText}
             />
             <Text style={styles.addTimeButtonText}>
               {showTimeModal ? 'Ocultar selector de hora' : 'Añadir nuevo horario'}
@@ -756,7 +766,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
           <View style={styles.rowBetween}>
             <View style={styles.sectionHeaderRow}>
               <View style={[styles.headerIconBadge, { backgroundColor: colors.primaryMuted }]}>
-                <Ionicons name="calendar" size={18} color={colors.primary} />
+                <Ionicons name="calendar" size={18} color={colors.primaryText} />
               </View>
               <View>
                 <Text style={styles.previewSectionTitle}>Proyección de Tomas</Text>
@@ -802,7 +812,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
                   <View style={styles.dosesListRow}>
                     {day.doses.map((doseTime) => (
                       <View key={doseTime} style={styles.doseScheduleTag}>
-                        <Ionicons name="time-outline" size={12} color={colors.primary} style={{ marginRight: 3 }} />
+                        <Ionicons name="time-outline" size={12} color={colors.primaryText} style={{ marginRight: 3 }} />
                         <Text style={styles.doseScheduleTime}>{doseTime}</Text>
                         <Text style={styles.doseScheduleAmount}>
                           ({dose || 'Dosis'})
@@ -839,7 +849,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: { flex: 1, backgroundColor: colors.bg },
   scrollContent: { padding: 16, paddingBottom: 24 },
 
@@ -900,7 +910,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   badgeCounterText: {
-    color: colors.primary,
+    color: colors.primaryText,
     fontSize: 12,
     fontWeight: '800',
   },
@@ -934,7 +944,7 @@ const styles = StyleSheet.create({
   profileChipName: { fontSize: 13, fontWeight: '800', color: colors.text },
   profileChipNameActive: { color: colors.primaryDark },
   profileChipType: { fontSize: 11, color: colors.muted, textTransform: 'capitalize' },
-  profileChipTypeActive: { color: colors.primary },
+  profileChipTypeActive: { color: colors.primaryText },
   checkBadge: {
     marginLeft: 6,
     width: 18,
@@ -1045,7 +1055,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   freqIconBoxActive: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
   },
   frequencyTitle: { fontSize: 14, fontWeight: '800', color: colors.text },
   frequencyTitleActive: { color: colors.primaryDark },
@@ -1144,7 +1154,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: colors.surfaceAlt,
   },
-  addTimeButtonText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
+  addTimeButtonText: { color: colors.primaryText, fontSize: 14, fontWeight: '700' },
   timeSelectorBox: {
     marginTop: 12,
     backgroundColor: colors.surfaceAlt,
@@ -1243,7 +1253,7 @@ const styles = StyleSheet.create({
   photoActionBtnSecondaryText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
   urlInputBox: { marginTop: 10 },
   urlApplyBtn: {
-    backgroundColor: colors.success,
+    backgroundColor: colors.primary,
     paddingVertical: 10,
     borderRadius: 12,
     alignItems: 'center',
@@ -1254,7 +1264,7 @@ const styles = StyleSheet.create({
   // Previsualización Calendario
   previewSectionCard: {
     borderColor: colors.primarySoft,
-    backgroundColor: '#FAFDFD',
+    backgroundColor: colors.surfaceAlt,
   },
   previewSectionTitle: {
     fontSize: 16,
@@ -1343,4 +1353,4 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: { opacity: 0.6 },
   saveButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
-});
+}));
