@@ -7,19 +7,28 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
-  Image,
   ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import client from '../api/client';
-import { colors, shadow, shadowSm } from '../theme';
+import Avatar from '../components/Avatar';
+import { colors, shadow, getProfileTone } from '../theme';
+import { formatAge } from '../utils/schedule';
 
 const PROFILE_TYPES = [
-  { id: 'adulto mayor', label: 'Adulto mayor', icon: 'heart-outline', desc: 'Control prioritario' },
-  { id: 'adulto', label: 'Adulto', icon: 'person-outline', desc: 'Tratamiento personal' },
-  { id: 'niño', label: 'Niño', icon: 'happy-outline', desc: 'Dosis pediátrica' },
+  { id: 'adulto mayor', label: 'Adulto mayor', desc: 'Control prioritario' },
+  { id: 'adulto', label: 'Adulto', desc: 'Tratamiento personal' },
+  { id: 'niño', label: 'Niño', desc: 'Dosis pediátrica' },
 ];
+
+// Inserta los guiones mientras se escribe: 19900515 -> 1990-05-15
+const formatBirthdateInput = (text) => {
+  const digits = text.replace(/\D/g, '').slice(0, 8);
+  if (digits.length > 6) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+  if (digits.length > 4) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return digits;
+};
 
 export default function ProfileFormScreen({ route, navigation }) {
   const profile = route.params?.profile;
@@ -31,6 +40,7 @@ export default function ProfileFormScreen({ route, navigation }) {
   );
   const [type, setType] = useState(profile ? profile.type : 'adulto');
   const [loading, setLoading] = useState(false);
+  const age = birthdate.length === 10 ? formatAge(birthdate) : null;
 
   const handlePickImage = async () => {
     try {
@@ -139,20 +149,17 @@ export default function ProfileFormScreen({ route, navigation }) {
       <View style={[styles.card, shadow]}>
         {/* AVATAR / FOTO */}
         <View style={styles.avatarSection}>
-          <View style={styles.avatarWrapper}>
-            {photo ? (
-              <Image source={{ uri: photo }} style={styles.avatarPreview} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarPlaceholderText}>
-                  {name ? name.charAt(0).toUpperCase() : '?'}
-                </Text>
-              </View>
-            )}
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={handlePickImage}
+            activeOpacity={0.85}
+            accessibilityLabel="Elegir foto de perfil"
+          >
+            <Avatar name={name} photo={photo} type={type} size={104} style={styles.avatarPreview} />
             <View style={styles.avatarBadge}>
               <Ionicons name="camera" size={14} color="#fff" />
             </View>
-          </View>
+          </TouchableOpacity>
 
           {photo ? (
             <TouchableOpacity
@@ -191,18 +198,23 @@ export default function ProfileFormScreen({ route, navigation }) {
         </View>
 
         {/* FECHA DE NACIMIENTO */}
-        <Text style={styles.label}>Fecha de nacimiento * (AAAA-MM-DD)</Text>
+        <Text style={styles.label}>Fecha de nacimiento *</Text>
         <View style={styles.inputContainer}>
           <Ionicons name="calendar-outline" size={20} color={colors.muted} style={styles.inputIcon} />
           <TextInput
             style={styles.input}
             value={birthdate}
-            onChangeText={setBirthdate}
+            onChangeText={(text) => setBirthdate(formatBirthdateInput(text))}
             placeholder="1990-05-15"
             placeholderTextColor={colors.muted}
-            keyboardType="numbers-and-punctuation"
+            keyboardType="number-pad"
             maxLength={10}
           />
+          {age && (
+            <View style={styles.ageHint}>
+              <Text style={styles.ageHintText}>{age}</Text>
+            </View>
+          )}
         </View>
 
         {/* TIPO DE PERFIL */}
@@ -210,29 +222,33 @@ export default function ProfileFormScreen({ route, navigation }) {
         <View style={styles.typeContainer}>
           {PROFILE_TYPES.map((t) => {
             const isActive = type === t.id;
+            const tone = getProfileTone(t.id);
             return (
               <TouchableOpacity
                 key={t.id}
-                style={[styles.typeBtn, isActive && styles.typeBtnActive]}
+                style={[
+                  styles.typeBtn,
+                  isActive && { backgroundColor: tone.soft, borderColor: tone.color },
+                ]}
                 onPress={() => setType(t.id)}
                 activeOpacity={0.8}
               >
                 <View style={[styles.typeIconBox, isActive && styles.typeIconBoxActive]}>
                   <Ionicons
-                    name={t.icon}
+                    name={tone.icon}
                     size={20}
-                    color={isActive ? colors.primary : colors.muted}
+                    color={isActive ? tone.color : colors.muted}
                   />
                 </View>
                 <Text style={[styles.typeBtnText, isActive && styles.typeBtnTextActive]}>
                   {t.label}
                 </Text>
-                <Text style={[styles.typeDesc, isActive && styles.typeDescActive]}>
+                <Text style={[styles.typeDesc, isActive && { color: tone.color }]}>
                   {t.desc}
                 </Text>
                 {isActive && (
                   <View style={styles.typeActiveCheck}>
-                    <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
+                    <Ionicons name="checkmark-circle" size={16} color={tone.color} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -290,27 +306,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatarPreview: {
-    width: 104,
-    height: 104,
-    borderRadius: 34,
-    backgroundColor: colors.border,
     borderWidth: 3,
     borderColor: colors.surface,
-  },
-  avatarPlaceholder: {
-    width: 104,
-    height: 104,
-    borderRadius: 34,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: colors.surface,
-  },
-  avatarPlaceholderText: {
-    color: '#fff',
-    fontSize: 42,
-    fontWeight: '800',
   },
   avatarBadge: {
     position: 'absolute',
@@ -385,6 +382,17 @@ const styles = StyleSheet.create({
   inputIcon: {
     marginRight: 10,
   },
+  ageHint: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  ageHintText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '800',
+  },
   input: {
     flex: 1,
     paddingVertical: 14,
@@ -406,10 +414,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surfaceAlt,
     position: 'relative',
-  },
-  typeBtnActive: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
   },
   typeIconBox: {
     width: 38,
@@ -437,9 +441,6 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
     marginTop: 2,
-  },
-  typeDescActive: {
-    color: colors.primary,
   },
   typeActiveCheck: {
     position: 'absolute',

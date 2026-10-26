@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import client from '../api/client';
-import { colors, shadow, shadowSm, shadowMd } from '../theme';
+import Avatar from '../components/Avatar';
+import { colors, shadowSm, shadowMd } from '../theme';
 
 const FREQUENCY_OPTIONS = [
   { id: 'diaria', label: 'Diaria', desc: 'Todos los días', icon: 'calendar-outline' },
@@ -48,8 +50,24 @@ const QUICK_NOTES = [
 const COMMON_DRUGS = ['Paracetamol', 'Ibuprofeno', 'Amoxicilina', 'Omeprazol', 'Losartán'];
 const COMMON_DOSES = ['500 mg', '1 comprimido', '1 cápsula', '10 ml', '1 sobre'];
 
+function SectionHeader({ step, title, subtitle, right }) {
+  return (
+    <View style={styles.sectionHeaderRow}>
+      <View style={styles.stepBadge}>
+        <Text style={styles.stepBadgeText}>{step}</Text>
+      </View>
+      <View style={styles.sectionHeaderText}>
+        <Text style={styles.sectionHeaderTitle}>{title}</Text>
+        <Text style={styles.sectionHeaderSubtitle}>{subtitle}</Text>
+      </View>
+      {right}
+    </View>
+  );
+}
+
 export default function ScheduleReminderScreen({ route, navigation }) {
   const initialProfile = route.params?.profile;
+  const insets = useSafeAreaInsets();
 
   // Form State
   const [profiles, setProfiles] = useState(initialProfile ? [initialProfile] : []);
@@ -309,532 +327,500 @@ export default function ScheduleReminderScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
-      {/* 1. SELECCIÓN DE PACIENTE / PERFIL */}
-      <View style={[styles.sectionCard, shadowSm]}>
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.headerIconBadge}>
-            <Ionicons name="person-circle-outline" size={20} color={colors.primary} />
-          </View>
-          <View>
-            <Text style={styles.sectionHeaderTitle}>Paciente / Familiar</Text>
-            <Text style={styles.sectionHeaderSubtitle}>¿A quién va asignado este tratamiento?</Text>
-          </View>
-        </View>
+    <View style={styles.screen}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* 1. SELECCIÓN DE PACIENTE / PERFIL */}
+        <View style={[styles.sectionCard, shadowSm]}>
+          <SectionHeader step={1} title="Paciente / Familiar" subtitle="¿A quién va asignado este tratamiento?" />
 
-        {fetchingProfiles ? (
-          <ActivityIndicator color={colors.primary} style={{ marginVertical: 14 }} />
-        ) : (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.profileList}>
-            {profiles.map((p) => {
-              const isSelected = p.id === selectedProfileId;
-              return (
-                <TouchableOpacity
-                  key={p.id}
-                  style={[styles.profileChip, isSelected && styles.profileChipActive]}
-                  onPress={() => setSelectedProfileId(p.id)}
-                  activeOpacity={0.8}
-                >
-                  {p.photo ? (
-                    <Image source={{ uri: p.photo }} style={styles.profileChipImg} />
-                  ) : (
-                    <View style={[styles.profileAvatar, isSelected && styles.profileAvatarActive]}>
-                      <Text style={[styles.profileAvatarText, isSelected && styles.profileAvatarTextActive]}>
-                        {p.name.charAt(0).toUpperCase()}
+          {fetchingProfiles ? (
+            <ActivityIndicator color={colors.primary} style={{ marginVertical: 14 }} />
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.profileList}>
+              {profiles.map((p) => {
+                const isSelected = p.id === selectedProfileId;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.profileChip, isSelected && styles.profileChipActive]}
+                    onPress={() => setSelectedProfileId(p.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Avatar
+                      name={p.name}
+                      photo={p.photo}
+                      type={p.type}
+                      size={36}
+                      style={[styles.profileChipAvatar, !isSelected && styles.profileChipAvatarIdle]}
+                    />
+                    <View style={{ flexShrink: 1 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.profileChipName, isSelected && styles.profileChipNameActive]}
+                      >
+                        {p.name}
+                      </Text>
+                      <Text style={[styles.profileChipType, isSelected && styles.profileChipTypeActive]}>
+                        {p.type}
                       </Text>
                     </View>
-                  )}
-                  <View style={{ flexShrink: 1 }}>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.profileChipName, isSelected && styles.profileChipNameActive]}
-                    >
-                      {p.name}
-                    </Text>
-                    <Text style={[styles.profileChipType, isSelected && styles.profileChipTypeActive]}>
-                      {p.type}
-                    </Text>
-                  </View>
-                  {isSelected && (
-                    <View style={styles.checkBadge}>
-                      <Ionicons name="checkmark" size={12} color="#fff" />
-                    </View>
-                  )}
+                    {isSelected && (
+                      <View style={styles.checkBadge}>
+                        <Ionicons name="checkmark" size={12} color="#fff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+
+        {/* 2. DATOS DEL FÁRMACO */}
+        <View style={[styles.sectionCard, shadowSm]}>
+          <SectionHeader step={2} title="Medicamento y Dosis" subtitle="Detalles de la prescripción" />
+
+          <Text style={styles.inputLabel}>Nombre del medicamento *</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="bandage-outline" size={18} color={colors.muted} style={styles.inputIcon} />
+            <TextInput
+              style={styles.textInput}
+              placeholder="Ej: Paracetamol, Losartán, Insulina..."
+              placeholderTextColor={colors.muted}
+              value={medicationName}
+              onChangeText={setMedicationName}
+            />
+          </View>
+
+          {/* Sugerencias Rápidas de Fármacos */}
+          <View style={styles.chipsRow}>
+            {COMMON_DRUGS.map((drug) => {
+              const active = medicationName.toLowerCase() === drug.toLowerCase();
+              return (
+                <TouchableOpacity
+                  key={drug}
+                  style={[styles.suggestionChip, active && styles.suggestionChipActive]}
+                  onPress={() => setMedicationName(drug)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.suggestionChipText, active && styles.suggestionChipTextActive]}>
+                    {drug}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
-        )}
-      </View>
-
-      {/* 2. DATOS DEL FÁRMACO */}
-      <View style={[styles.sectionCard, shadowSm]}>
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.headerIconBadge}>
-            <Ionicons name="medkit-outline" size={20} color={colors.primary} />
           </View>
-          <View>
-            <Text style={styles.sectionHeaderTitle}>Medicamento y Dosis</Text>
-            <Text style={styles.sectionHeaderSubtitle}>Detalles de la prescripción</Text>
+
+          <Text style={[styles.inputLabel, { marginTop: 16 }]}>Dosis *</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="flask-outline" size={18} color={colors.muted} style={styles.inputIcon} />
+            <TextInput
+              style={styles.textInput}
+              placeholder="Ej: 500 mg, 1 tableta, 10 ml..."
+              placeholderTextColor={colors.muted}
+              value={dose}
+              onChangeText={setDose}
+            />
           </View>
-        </View>
 
-        <Text style={styles.inputLabel}>Nombre del medicamento *</Text>
-        <View style={styles.inputWrap}>
-          <Ionicons name="bandage-outline" size={18} color={colors.muted} style={styles.inputIcon} />
-          <TextInput
-            style={styles.textInput}
-            placeholder="Ej: Paracetamol, Losartán, Insulina..."
-            placeholderTextColor={colors.muted}
-            value={medicationName}
-            onChangeText={setMedicationName}
-          />
-        </View>
-
-        {/* Sugerencias Rápidas de Fármacos */}
-        <View style={styles.chipsRow}>
-          {COMMON_DRUGS.map((drug) => {
-            const active = medicationName.toLowerCase() === drug.toLowerCase();
-            return (
-              <TouchableOpacity
-                key={drug}
-                style={[styles.suggestionChip, active && styles.suggestionChipActive]}
-                onPress={() => setMedicationName(drug)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.suggestionChipText, active && styles.suggestionChipTextActive]}>
-                  {drug}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <Text style={[styles.inputLabel, { marginTop: 16 }]}>Dosis *</Text>
-        <View style={styles.inputWrap}>
-          <Ionicons name="flask-outline" size={18} color={colors.muted} style={styles.inputIcon} />
-          <TextInput
-            style={styles.textInput}
-            placeholder="Ej: 500 mg, 1 tableta, 10 ml..."
-            placeholderTextColor={colors.muted}
-            value={dose}
-            onChangeText={setDose}
-          />
-        </View>
-
-        {/* Sugerencias Rápidas de Dosis */}
-        <View style={styles.chipsRow}>
-          {COMMON_DOSES.map((d) => {
-            const active = dose.toLowerCase() === d.toLowerCase();
-            return (
-              <TouchableOpacity
-                key={d}
-                style={[styles.suggestionChip, active && styles.suggestionChipActive]}
-                onPress={() => setDose(d)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.suggestionChipText, active && styles.suggestionChipTextActive]}>
-                  {d}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* 3. FRECUENCIA */}
-      <View style={[styles.sectionCard, shadowSm]}>
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.headerIconBadge}>
-            <Ionicons name="repeat-outline" size={20} color={colors.primary} />
-          </View>
-          <View>
-            <Text style={styles.sectionHeaderTitle}>Frecuencia de Toma</Text>
-            <Text style={styles.sectionHeaderSubtitle}>¿Cada cuánto se debe administrar?</Text>
-          </View>
-        </View>
-
-        <View style={styles.frequencyList}>
-          {FREQUENCY_OPTIONS.map((item) => {
-            const active = frequencyType === item.id;
-            return (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.frequencyCard, active && styles.frequencyCardActive]}
-                onPress={() => handleFrequencyChange(item.id)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.freqIconBox, active && styles.freqIconBoxActive]}>
-                  <Ionicons
-                    name={item.icon}
-                    size={20}
-                    color={active ? colors.primary : colors.muted}
-                  />
-                </View>
-
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.frequencyTitle, active && styles.frequencyTitleActive]}>
-                    {item.label}
-                  </Text>
-                  <Text style={styles.frequencyDesc}>{item.desc}</Text>
-                </View>
-
-                <View style={[styles.radioCircle, active && styles.radioCircleActive]}>
-                  {active && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Sub-configuración según frecuencia */}
-        {frequencyType === 'cada_x_horas' && (
-          <View style={styles.subConfigBox}>
-            <View style={styles.subConfigHeader}>
-              <Ionicons name="hourglass-outline" size={16} color={colors.primaryDark} />
-              <Text style={styles.subConfigTitle}>Intervalo entre tomas:</Text>
-            </View>
-            <View style={styles.hoursRow}>
-              {INTERVAL_HOURS.map((h) => {
-                const isHActive = intervalHour === h;
-                return (
-                  <TouchableOpacity
-                    key={h}
-                    style={[styles.hourChip, isHActive && styles.hourChipActive]}
-                    onPress={() => {
-                      setIntervalHour(h);
-                      handleAutoGenerateTimes(h);
-                    }}
-                  >
-                    <Text style={[styles.hourChipText, isHActive && styles.hourChipTextActive]}>
-                      {h}h
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {frequencyType === 'dias_especificos' && (
-          <View style={styles.subConfigBox}>
-            <View style={styles.subConfigHeader}>
-              <Ionicons name="calendar-number-outline" size={16} color={colors.primaryDark} />
-              <Text style={styles.subConfigTitle}>Días activos de la semana:</Text>
-            </View>
-            <View style={styles.daysRow}>
-              {DAYS_OF_WEEK.map((d) => {
-                const isSelected = selectedDays.includes(d.key);
-                return (
-                  <TouchableOpacity
-                    key={d.key}
-                    style={[styles.dayButton, isSelected && styles.dayButtonActive]}
-                    onPress={() => handleToggleDay(d.key)}
-                  >
-                    <Text style={[styles.dayButtonText, isSelected && styles.dayButtonTextActive]}>
-                      {d.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {frequencyType === 'semanal' && (
-          <View style={styles.subConfigBox}>
-            <View style={styles.subConfigHeader}>
-              <Ionicons name="today-outline" size={16} color={colors.primaryDark} />
-              <Text style={styles.subConfigTitle}>Día semanal para la dosis:</Text>
-            </View>
-            <View style={styles.daysRow}>
-              {DAYS_OF_WEEK.map((d) => {
-                const isSelected = weeklyDay === d.key;
-                return (
-                  <TouchableOpacity
-                    key={d.key}
-                    style={[styles.dayButton, isSelected && styles.dayButtonActive]}
-                    onPress={() => setWeeklyDay(d.key)}
-                  >
-                    <Text style={[styles.dayButtonText, isSelected && styles.dayButtonTextActive]}>
-                      {d.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
-      </View>
-
-      {/* 4. HORARIOS DE TOMA */}
-      <View style={[styles.sectionCard, shadowSm]}>
-        <View style={styles.rowBetween}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={styles.headerIconBadge}>
-              <Ionicons name="time-outline" size={20} color={colors.primary} />
-            </View>
-            <View>
-              <Text style={styles.sectionHeaderTitle}>Horarios de Toma</Text>
-              <Text style={styles.sectionHeaderSubtitle}>Horas del día para recibir alerta</Text>
-            </View>
-          </View>
-          <View style={styles.badgeCounter}>
-            <Text style={styles.badgeCounterText}>
-              {times.length} {times.length === 1 ? 'toma' : 'tomas'}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.helperText}>
-          Configura una o múltiples tomas al día según la indicación médica.
-        </Text>
-
-        <View style={styles.timesContainer}>
-          {times.map((t) => (
-            <View key={t} style={styles.timeTag}>
-              <Ionicons name="alarm-outline" size={15} color={colors.primaryDark} style={{ marginRight: 4 }} />
-              <Text style={styles.timeTagText}>{t}</Text>
-              <TouchableOpacity
-                onPress={() => handleRemoveTime(t)}
-                style={styles.timeRemoveBtn}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="close-circle" size={16} color={colors.muted} />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-
-        <TouchableOpacity
-          style={styles.addTimeButton}
-          onPress={() => setShowTimeModal(!showTimeModal)}
-          activeOpacity={0.8}
-        >
-          <Ionicons
-            name={showTimeModal ? 'chevron-up' : 'add-circle-outline'}
-            size={18}
-            color={colors.primary}
-          />
-          <Text style={styles.addTimeButtonText}>
-            {showTimeModal ? 'Ocultar selector de hora' : 'Añadir nuevo horario'}
-          </Text>
-        </TouchableOpacity>
-
-        {showTimeModal && (
-          <View style={styles.timeSelectorBox}>
-            <Text style={styles.subConfigTitle}>Horas sugeridas frecuentes:</Text>
-            <View style={styles.chipsRow}>
-              {PRESET_TIMES.map((preset) => (
+          {/* Sugerencias Rápidas de Dosis */}
+          <View style={styles.chipsRow}>
+            {COMMON_DOSES.map((d) => {
+              const active = dose.toLowerCase() === d.toLowerCase();
+              return (
                 <TouchableOpacity
-                  key={preset}
-                  style={styles.presetChip}
-                  onPress={() => handleAddTime(preset)}
+                  key={d}
+                  style={[styles.suggestionChip, active && styles.suggestionChipActive]}
+                  onPress={() => setDose(d)}
+                  activeOpacity={0.7}
                 >
-                  <Text style={styles.presetChipText}>{preset}</Text>
+                  <Text style={[styles.suggestionChipText, active && styles.suggestionChipTextActive]}>
+                    {d}
+                  </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={[styles.subConfigTitle, { marginTop: 12 }]}>
-              O ingresa la hora exacta (HH:MM):
-            </Text>
-            <View style={styles.customTimeRow}>
-              <TextInput
-                style={[styles.textInput, styles.customTimeInput]}
-                placeholder="Ej: 09:30"
-                placeholderTextColor={colors.muted}
-                value={customTimeInput}
-                onChangeText={setCustomTimeInput}
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-              />
-              <TouchableOpacity
-                style={styles.customTimeAddBtn}
-                onPress={() => handleAddTime(customTimeInput)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="checkmark" size={18} color="#fff" />
-                <Text style={styles.customTimeAddBtnText}>Agregar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      </View>
-
-      {/* 5. FOTO Y NOTAS */}
-      <View style={[styles.sectionCard, shadowSm]}>
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.headerIconBadge}>
-            <Ionicons name="camera-outline" size={20} color={colors.primary} />
-          </View>
-          <View>
-            <Text style={styles.sectionHeaderTitle}>Foto del Medicamento y Notas</Text>
-            <Text style={styles.sectionHeaderSubtitle}>Facilita el reconocimiento visual</Text>
+              );
+            })}
           </View>
         </View>
 
-        <View style={styles.photoContainer}>
-          {photo ? (
-            <View style={styles.previewImageWrapper}>
-              <Image source={{ uri: photo }} style={styles.previewImage} />
-              <TouchableOpacity
-                style={styles.removePhotoBtn}
-                onPress={() => setPhoto('')}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="trash-outline" size={14} color={colors.danger} />
-                <Text style={styles.removePhotoText}>Quitar foto</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.noPhotoPlaceholder}>
-              <Ionicons name="image-outline" size={32} color={colors.muted} />
-              <Text style={styles.noPhotoText}>Sin imagen del fármaco</Text>
-            </View>
-          )}
+        {/* 3. FRECUENCIA */}
+        <View style={[styles.sectionCard, shadowSm]}>
+          <SectionHeader step={3} title="Frecuencia de Toma" subtitle="¿Cada cuánto se debe administrar?" />
 
-          <View style={styles.photoActionRow}>
-            <TouchableOpacity style={styles.photoActionBtn} onPress={handleTakePhoto}>
-              <Ionicons name="camera-outline" size={16} color="#fff" />
-              <Text style={styles.photoActionBtnText}>Cámara</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.photoActionBtn} onPress={handlePickImage}>
-              <Ionicons name="images-outline" size={16} color="#fff" />
-              <Text style={styles.photoActionBtnText}>Galería</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.photoActionBtnSecondary}
-              onPress={() => setShowUrlInput(!showUrlInput)}
-            >
-              <Ionicons name="link-outline" size={16} color={colors.textSecondary} />
-              <Text style={styles.photoActionBtnSecondaryText}>URL</Text>
-            </TouchableOpacity>
-          </View>
-
-          {showUrlInput && (
-            <View style={styles.urlInputBox}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="https://ejemplo.com/medicamento.jpg"
-                placeholderTextColor={colors.muted}
-                value={photoInputUrl}
-                onChangeText={setPhotoInputUrl}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                style={styles.urlApplyBtn}
-                onPress={() => {
-                  if (photoInputUrl.trim()) {
-                    setPhoto(photoInputUrl.trim());
-                    setShowUrlInput(false);
-                  }
-                }}
-              >
-                <Text style={styles.urlApplyBtnText}>Aplicar URL</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        <Text style={[styles.inputLabel, { marginTop: 16 }]}>Notas de administración (Opcional)</Text>
-        <TextInput
-          style={[styles.textInput, styles.notesInput]}
-          placeholder="Ej: Tomar con un vaso de agua después del almuerzo..."
-          placeholderTextColor={colors.muted}
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          numberOfLines={3}
-        />
-
-        <Text style={styles.quickNotesTitle}>Indicaciones frecuentes:</Text>
-        <View style={styles.chipsRow}>
-          {QUICK_NOTES.map((qn) => (
-            <TouchableOpacity
-              key={qn}
-              style={styles.suggestionChip}
-              onPress={() => {
-                const newNote = notes ? `${notes}, ${qn}` : qn;
-                setNotes(newNote);
-              }}
-            >
-              <Ionicons name="add" size={13} color={colors.textSecondary} style={{ marginRight: 2 }} />
-              <Text style={styles.suggestionChipText}>{qn}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* 6. PREVISUALIZACIÓN DEL CALENDARIO DE TOMAS */}
-      <View style={[styles.sectionCard, styles.previewSectionCard, shadowSm]}>
-        <View style={styles.rowBetween}>
-          <View style={styles.sectionHeaderRow}>
-            <View style={[styles.headerIconBadge, { backgroundColor: colors.primaryMuted }]}>
-              <Ionicons name="calendar" size={18} color={colors.primary} />
-            </View>
-            <View>
-              <Text style={styles.previewSectionTitle}>Proyección de Tomas</Text>
-              <Text style={styles.sectionHeaderSubtitle}>Próximos 7 días planificados</Text>
-            </View>
-          </View>
-          <View style={styles.liveBadge}>
-            <Ionicons name="sparkles" size={12} color="#fff" style={{ marginRight: 4 }} />
-            <Text style={styles.liveBadgeText}>Vista Previa</Text>
-          </View>
-        </View>
-        <Text style={styles.helperText}>
-          Cronograma proyectado para los próximos 7 días:
-        </Text>
-
-        <View style={styles.calendarTimeline}>
-          {calendarPreview.map((day, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.calendarDayCard,
-                day.hasDoses ? styles.calendarDayActive : styles.calendarDayInactive,
-              ]}
-            >
-              <View style={styles.calendarDayHeader}>
-                <View style={styles.dateBadge}>
-                  <Text style={styles.calendarDayName}>{day.dayName}</Text>
-                  <Text style={styles.calendarDateText}>{day.dateString}</Text>
-                </View>
-
-                {day.hasDoses ? (
-                  <View style={styles.intakeBadge}>
-                    <Text style={styles.intakeBadgeText}>
-                      {day.doses.length} {day.doses.length === 1 ? 'dosis' : 'dosis'}
-                    </Text>
+          <View style={styles.frequencyList}>
+            {FREQUENCY_OPTIONS.map((item) => {
+              const active = frequencyType === item.id;
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.frequencyCard, active && styles.frequencyCardActive]}
+                  onPress={() => handleFrequencyChange(item.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.freqIconBox, active && styles.freqIconBoxActive]}>
+                    <Ionicons
+                      name={item.icon}
+                      size={20}
+                      color={active ? colors.primary : colors.muted}
+                    />
                   </View>
-                ) : (
-                  <Text style={styles.noDoseDayText}>Sin tomas</Text>
-                )}
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.frequencyTitle, active && styles.frequencyTitleActive]}>
+                      {item.label}
+                    </Text>
+                    <Text style={styles.frequencyDesc}>{item.desc}</Text>
+                  </View>
+
+                  <View style={[styles.radioCircle, active && styles.radioCircleActive]}>
+                    {active && <View style={styles.radioInner} />}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Sub-configuración según frecuencia */}
+          {frequencyType === 'cada_x_horas' && (
+            <View style={styles.subConfigBox}>
+              <View style={styles.subConfigHeader}>
+                <Ionicons name="hourglass-outline" size={16} color={colors.primaryDark} />
+                <Text style={styles.subConfigTitle}>Intervalo entre tomas:</Text>
+              </View>
+              <View style={styles.hoursRow}>
+                {INTERVAL_HOURS.map((h) => {
+                  const isHActive = intervalHour === h;
+                  return (
+                    <TouchableOpacity
+                      key={h}
+                      style={[styles.hourChip, isHActive && styles.hourChipActive]}
+                      onPress={() => {
+                        setIntervalHour(h);
+                        handleAutoGenerateTimes(h);
+                      }}
+                    >
+                      <Text style={[styles.hourChipText, isHActive && styles.hourChipTextActive]}>
+                        {h}h
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {frequencyType === 'dias_especificos' && (
+            <View style={styles.subConfigBox}>
+              <View style={styles.subConfigHeader}>
+                <Ionicons name="calendar-number-outline" size={16} color={colors.primaryDark} />
+                <Text style={styles.subConfigTitle}>Días activos de la semana:</Text>
+              </View>
+              <View style={styles.daysRow}>
+                {DAYS_OF_WEEK.map((d) => {
+                  const isSelected = selectedDays.includes(d.key);
+                  return (
+                    <TouchableOpacity
+                      key={d.key}
+                      style={[styles.dayButton, isSelected && styles.dayButtonActive]}
+                      onPress={() => handleToggleDay(d.key)}
+                    >
+                      <Text style={[styles.dayButtonText, isSelected && styles.dayButtonTextActive]}>
+                        {d.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {frequencyType === 'semanal' && (
+            <View style={styles.subConfigBox}>
+              <View style={styles.subConfigHeader}>
+                <Ionicons name="today-outline" size={16} color={colors.primaryDark} />
+                <Text style={styles.subConfigTitle}>Día semanal para la dosis:</Text>
+              </View>
+              <View style={styles.daysRow}>
+                {DAYS_OF_WEEK.map((d) => {
+                  const isSelected = weeklyDay === d.key;
+                  return (
+                    <TouchableOpacity
+                      key={d.key}
+                      style={[styles.dayButton, isSelected && styles.dayButtonActive]}
+                      onPress={() => setWeeklyDay(d.key)}
+                    >
+                      <Text style={[styles.dayButtonText, isSelected && styles.dayButtonTextActive]}>
+                        {d.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* 4. HORARIOS DE TOMA */}
+        <View style={[styles.sectionCard, shadowSm]}>
+          <SectionHeader
+            step={4}
+            title="Horarios de Toma"
+            subtitle="Horas del día para recibir alerta"
+            right={
+              <View style={styles.badgeCounter}>
+                <Text style={styles.badgeCounterText}>
+                  {times.length} {times.length === 1 ? 'toma' : 'tomas'}
+                </Text>
+              </View>
+            }
+          />
+
+          <Text style={styles.helperText}>
+            Configura una o múltiples tomas al día según la indicación médica.
+          </Text>
+
+          <View style={styles.timesContainer}>
+            {times.map((t) => (
+              <View key={t} style={styles.timeTag}>
+                <Ionicons name="alarm-outline" size={15} color={colors.primaryDark} style={{ marginRight: 4 }} />
+                <Text style={styles.timeTagText}>{t}</Text>
+                <TouchableOpacity
+                  onPress={() => handleRemoveTime(t)}
+                  style={styles.timeRemoveBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close-circle" size={16} color={colors.muted} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={styles.addTimeButton}
+            onPress={() => setShowTimeModal(!showTimeModal)}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={showTimeModal ? 'chevron-up' : 'add-circle-outline'}
+              size={18}
+              color={colors.primary}
+            />
+            <Text style={styles.addTimeButtonText}>
+              {showTimeModal ? 'Ocultar selector de hora' : 'Añadir nuevo horario'}
+            </Text>
+          </TouchableOpacity>
+
+          {showTimeModal && (
+            <View style={styles.timeSelectorBox}>
+              <Text style={styles.subConfigTitle}>Horas sugeridas frecuentes:</Text>
+              <View style={styles.chipsRow}>
+                {PRESET_TIMES.map((preset) => (
+                  <TouchableOpacity
+                    key={preset}
+                    style={styles.presetChip}
+                    onPress={() => handleAddTime(preset)}
+                  >
+                    <Text style={styles.presetChipText}>{preset}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
-              {day.hasDoses && (
-                <View style={styles.dosesListRow}>
-                  {day.doses.map((doseTime) => (
-                    <View key={doseTime} style={styles.doseScheduleTag}>
-                      <Ionicons name="time-outline" size={12} color={colors.primary} style={{ marginRight: 3 }} />
-                      <Text style={styles.doseScheduleTime}>{doseTime}</Text>
-                      <Text style={styles.doseScheduleAmount}>
-                        ({dose || 'Dosis'})
+              <Text style={[styles.subConfigTitle, { marginTop: 12 }]}>
+                O ingresa la hora exacta (HH:MM):
+              </Text>
+              <View style={styles.customTimeRow}>
+                <TextInput
+                  style={[styles.textInput, styles.customTimeInput]}
+                  placeholder="Ej: 09:30"
+                  placeholderTextColor={colors.muted}
+                  value={customTimeInput}
+                  onChangeText={setCustomTimeInput}
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                />
+                <TouchableOpacity
+                  style={styles.customTimeAddBtn}
+                  onPress={() => handleAddTime(customTimeInput)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="checkmark" size={18} color="#fff" />
+                  <Text style={styles.customTimeAddBtnText}>Agregar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* 5. FOTO Y NOTAS */}
+        <View style={[styles.sectionCard, shadowSm]}>
+          <SectionHeader step={5} title="Foto del Medicamento y Notas" subtitle="Facilita el reconocimiento visual" />
+
+          <View style={styles.photoContainer}>
+            {photo ? (
+              <View style={styles.previewImageWrapper}>
+                <Image source={{ uri: photo }} style={styles.previewImage} />
+                <TouchableOpacity
+                  style={styles.removePhotoBtn}
+                  onPress={() => setPhoto('')}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="trash-outline" size={14} color={colors.danger} />
+                  <Text style={styles.removePhotoText}>Quitar foto</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.noPhotoPlaceholder}>
+                <Ionicons name="image-outline" size={32} color={colors.muted} />
+                <Text style={styles.noPhotoText}>Sin imagen del fármaco</Text>
+              </View>
+            )}
+
+            <View style={styles.photoActionRow}>
+              <TouchableOpacity style={styles.photoActionBtn} onPress={handleTakePhoto}>
+                <Ionicons name="camera-outline" size={16} color="#fff" />
+                <Text style={styles.photoActionBtnText}>Cámara</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.photoActionBtn} onPress={handlePickImage}>
+                <Ionicons name="images-outline" size={16} color="#fff" />
+                <Text style={styles.photoActionBtnText}>Galería</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.photoActionBtnSecondary}
+                onPress={() => setShowUrlInput(!showUrlInput)}
+              >
+                <Ionicons name="link-outline" size={16} color={colors.textSecondary} />
+                <Text style={styles.photoActionBtnSecondaryText}>URL</Text>
+              </TouchableOpacity>
+            </View>
+
+            {showUrlInput && (
+              <View style={styles.urlInputBox}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="https://ejemplo.com/medicamento.jpg"
+                  placeholderTextColor={colors.muted}
+                  value={photoInputUrl}
+                  onChangeText={setPhotoInputUrl}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={styles.urlApplyBtn}
+                  onPress={() => {
+                    if (photoInputUrl.trim()) {
+                      setPhoto(photoInputUrl.trim());
+                      setShowUrlInput(false);
+                    }
+                  }}
+                >
+                  <Text style={styles.urlApplyBtnText}>Aplicar URL</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          <Text style={[styles.inputLabel, { marginTop: 16 }]}>Notas de administración (Opcional)</Text>
+          <TextInput
+            style={[styles.textInput, styles.notesInput]}
+            placeholder="Ej: Tomar con un vaso de agua después del almuerzo..."
+            placeholderTextColor={colors.muted}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={3}
+          />
+
+          <Text style={styles.quickNotesTitle}>Indicaciones frecuentes:</Text>
+          <View style={styles.chipsRow}>
+            {QUICK_NOTES.map((qn) => (
+              <TouchableOpacity
+                key={qn}
+                style={styles.suggestionChip}
+                onPress={() => {
+                  const newNote = notes ? `${notes}, ${qn}` : qn;
+                  setNotes(newNote);
+                }}
+              >
+                <Ionicons name="add" size={13} color={colors.textSecondary} style={{ marginRight: 2 }} />
+                <Text style={styles.suggestionChipText}>{qn}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* 6. PREVISUALIZACIÓN DEL CALENDARIO DE TOMAS */}
+        <View style={[styles.sectionCard, styles.previewSectionCard, shadowSm]}>
+          <View style={styles.rowBetween}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={[styles.headerIconBadge, { backgroundColor: colors.primaryMuted }]}>
+                <Ionicons name="calendar" size={18} color={colors.primary} />
+              </View>
+              <View>
+                <Text style={styles.previewSectionTitle}>Proyección de Tomas</Text>
+                <Text style={styles.sectionHeaderSubtitle}>Próximos 7 días planificados</Text>
+              </View>
+            </View>
+            <View style={styles.liveBadge}>
+              <Ionicons name="sparkles" size={12} color="#fff" style={{ marginRight: 4 }} />
+              <Text style={styles.liveBadgeText}>Vista Previa</Text>
+            </View>
+          </View>
+          <Text style={styles.helperText}>
+            Cronograma proyectado para los próximos 7 días:
+          </Text>
+
+          <View style={styles.calendarTimeline}>
+            {calendarPreview.map((day, idx) => (
+              <View
+                key={idx}
+                style={[
+                  styles.calendarDayCard,
+                  day.hasDoses ? styles.calendarDayActive : styles.calendarDayInactive,
+                ]}
+              >
+                <View style={styles.calendarDayHeader}>
+                  <View style={styles.dateBadge}>
+                    <Text style={styles.calendarDayName}>{day.dayName}</Text>
+                    <Text style={styles.calendarDateText}>{day.dateString}</Text>
+                  </View>
+
+                  {day.hasDoses ? (
+                    <View style={styles.intakeBadge}>
+                      <Text style={styles.intakeBadgeText}>
+                        {day.doses.length} {day.doses.length === 1 ? 'dosis' : 'dosis'}
                       </Text>
                     </View>
-                  ))}
+                  ) : (
+                    <Text style={styles.noDoseDayText}>Sin tomas</Text>
+                  )}
                 </View>
-              )}
-            </View>
-          ))}
-        </View>
-      </View>
 
-      {/* BOTÓN GUARDAR RECORDATORIO */}
-      <View style={styles.footerContainer}>
+                {day.hasDoses && (
+                  <View style={styles.dosesListRow}>
+                    {day.doses.map((doseTime) => (
+                      <View key={doseTime} style={styles.doseScheduleTag}>
+                        <Ionicons name="time-outline" size={12} color={colors.primary} style={{ marginRight: 3 }} />
+                        <Text style={styles.doseScheduleTime}>{doseTime}</Text>
+                        <Text style={styles.doseScheduleAmount}>
+                          ({dose || 'Dosis'})
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* BOTÓN GUARDAR RECORDATORIO (fijo) */}
+      <View style={[styles.footerContainer, shadowMd, { paddingBottom: Math.max(insets.bottom, 14) }]}>
         <TouchableOpacity
-          style={[styles.saveButton, shadowMd, loading && styles.saveButtonDisabled]}
+          style={[styles.saveButton, loading && styles.saveButtonDisabled]}
           onPress={handleSubmit}
           disabled={loading}
           activeOpacity={0.85}
@@ -849,13 +835,13 @@ export default function ScheduleReminderScreen({ route, navigation }) {
           )}
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  scrollContent: { padding: 16, paddingBottom: 24 },
 
   sectionCard: {
     backgroundColor: colors.surface,
@@ -870,6 +856,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
+  sectionHeaderText: { flex: 1 },
+  stepBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  stepBadgeText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   headerIconBadge: {
     width: 38,
     height: 38,
@@ -909,7 +906,7 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.muted,
     marginBottom: 12,
     lineHeight: 18,
   },
@@ -932,26 +929,8 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primaryLight,
   },
-  profileChipImg: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  profileAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  profileAvatarActive: {
-    backgroundColor: colors.primary,
-  },
-  profileAvatarText: { color: colors.textSecondary, fontWeight: '800', fontSize: 14 },
-  profileAvatarTextActive: { color: '#ffffff' },
+  profileChipAvatar: { marginRight: 8 },
+  profileChipAvatarIdle: { opacity: 0.55 },
   profileChipName: { fontSize: 13, fontWeight: '800', color: colors.text },
   profileChipNameActive: { color: colors.primaryDark },
   profileChipType: { fontSize: 11, color: colors.muted, textTransform: 'capitalize' },
@@ -1346,7 +1325,13 @@ const styles = StyleSheet.create({
   doseScheduleAmount: { fontSize: 11, color: colors.muted, marginLeft: 3 },
 
   // Footer y Guardar
-  footerContainer: { marginTop: 8, marginBottom: 24 },
+  footerContainer: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
   saveButton: {
     backgroundColor: colors.primary,
     flexDirection: 'row',

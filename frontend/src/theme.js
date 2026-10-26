@@ -45,3 +45,12 @@ export const shadowMd = {
   shadowRadius: 16,
   elevation: 4,
 };
+
+// Color propio por categoría de paciente, usado en avatares y etiquetas
+export const profileTones = {
+  'adulto mayor': { color: '#7C5CC4', soft: '#F1ECFB', icon: 'heart-outline' },
+  adulto: { color: colors.primary, soft: colors.primaryLight, icon: 'person-outline' },
+  niño: { color: '#E0763A', soft: '#FDF0E7', icon: 'happy-outline' },
+};
+
+export const getProfileTone = (type) => profileTones[type] || profileTones.adulto;

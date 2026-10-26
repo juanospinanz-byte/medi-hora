@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import client, { setAuthToken } from '../api/client';
-import { colors, shadow, shadowSm } from '../theme';
+import { colors, shadow } from '../theme';
 
 export default function AuthScreen({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -57,6 +57,8 @@ export default function AuthScreen({ onLogin }) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <View style={[styles.blob, styles.blobTop]} />
+      <View style={[styles.blob, styles.blobSide]} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -67,8 +69,11 @@ export default function AuthScreen({ onLogin }) {
         >
           {/* LOGO & HERO */}
           <View style={styles.hero}>
-            <View style={[styles.logoWrap, shadowSm]}>
+            <View style={[styles.logoWrap, shadow]}>
               <Ionicons name="medkit" size={38} color="#fff" />
+              <View style={styles.logoDot}>
+                <Ionicons name="alarm" size={13} color="#fff" />
+              </View>
             </View>
             <Text style={styles.brand}>Medi-Hora</Text>
             <Text style={styles.tagline}>
@@ -120,6 +125,8 @@ export default function AuthScreen({ onLogin }) {
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
                 keyboardType="email-address"
               />
             </View>
@@ -135,6 +142,9 @@ export default function AuthScreen({ onLogin }) {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                textContentType={isLogin ? 'password' : 'newPassword'}
+                onSubmitEditing={handleSubmit}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword((v) => !v)}
@@ -186,7 +196,25 @@ export default function AuthScreen({ onLogin }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' },
+  blob: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: colors.primaryMuted,
+  },
+  blobTop: {
+    width: 320,
+    height: 320,
+    top: -170,
+    right: -90,
+  },
+  blobSide: {
+    width: 200,
+    height: 200,
+    bottom: -60,
+    left: -110,
+    backgroundColor: colors.accentSoft,
+  },
   flex: { flex: 1 },
   scroll: {
     flexGrow: 1,
@@ -206,6 +234,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
+  },
+  logoDot: {
+    position: 'absolute',
+    right: -6,
+    top: -6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.accent,
+    borderWidth: 3,
+    borderColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brand: {
     fontSize: 32,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import AuthScreen from './src/screens/AuthScreen';
@@ -26,49 +27,41 @@ export default function App() {
   };
 
   return (
-    <>
-      <StatusBar style="auto" />
+    <SafeAreaProvider>
       <StatusBar style="dark" />
       {token ? (
         <NavigationContainer>
           <Stack.Navigator
             screenOptions={{
-              headerStyle: { backgroundColor: colors.surface },
+              headerStyle: { backgroundColor: colors.bg },
               headerTintColor: colors.primaryDark,
-              headerTitleStyle: { fontWeight: '800', color: colors.primaryDark },
-              headerTitleStyle: { fontWeight: '800', color: colors.primaryDark, fontSize: 18 },
+              headerTitleStyle: { fontWeight: '800', color: colors.primaryDark, fontSize: 17 },
               headerShadowVisible: false,
               headerTitleAlign: 'center',
               headerBackTitle: 'Atrás',
               contentStyle: { backgroundColor: colors.bg },
             }}
           >
-            <Stack.Screen 
-              name="Main" 
-              options={{ title: 'Medi-Hora' }}
-              options={{ headerShown: false }}
-            >
+            <Stack.Screen name="Main" options={{ headerShown: false }}>
               {(props) => <MainScreen {...props} onLogout={handleLogout} />}
             </Stack.Screen>
-            <Stack.Screen 
-              name="ProfileForm" 
-              component={ProfileFormScreen} 
-              options={{ title: 'Perfil' }}
+            <Stack.Screen
+              name="ProfileForm"
+              component={ProfileFormScreen}
               options={({ route }) => ({
-                title: route.params?.profile ? 'Editar Perfil' : 'Nuevo Perfil Familiar',
+                title: route.params?.profile ? 'Editar perfil' : 'Nuevo perfil',
               })}
             />
-            <Stack.Screen 
-              name="ScheduleReminder" 
-              component={ScheduleReminderScreen} 
-              options={{ title: 'Recordatorio' }}
-              options={{ title: 'Programar Recordatorio' }}
+            <Stack.Screen
+              name="ScheduleReminder"
+              component={ScheduleReminderScreen}
+              options={{ title: 'Programar recordatorio' }}
             />
           </Stack.Navigator>
         </NavigationContainer>
       ) : (
         <AuthScreen onLogin={handleLogin} />
       )}
-    </>
+    </SafeAreaProvider>
   );
 }
