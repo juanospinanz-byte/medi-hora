@@ -3,6 +3,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const storageKey = (dateKey) => `medihora:doses:${dateKey}`;
 
+// Lee de una vez los registros de varios días: { 'AAAA-MM-DD': { ... } }
+export const loadDoseLogs = async (dateKeys) => {
+  const pairs = await AsyncStorage.multiGet(dateKeys.map(storageKey));
+  return Object.fromEntries(
+    pairs.map(([, raw], i) => {
+      try {
+        return [dateKeys[i], raw ? JSON.parse(raw) : {}];
+      } catch {
+        return [dateKeys[i], {}];
+      }
+    })
+  );
+};
+
 // Registro local (en este celular) de las tomas de un día marcadas como tomadas u omitidas:
 // { '<medicamento>@<hora>': { status: 'taken' | 'skipped', at: ISO } }
 export const useDoseLog = (dateKey) => {

@@ -2,16 +2,18 @@ import React, { useMemo, useState } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 
 import AuthScreen from './src/screens/AuthScreen';
 import TodayScreen from './src/screens/TodayScreen';
 import FamilyScreen from './src/screens/FamilyScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
 import ProfileFormScreen from './src/screens/ProfileFormScreen';
 import ScheduleReminderScreen from './src/screens/ScheduleReminderScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import AppBar from './src/components/AppBar';
 import { setAuthToken } from './src/api/client';
 import { AppDataProvider } from './src/appData';
 import { cancelMedicationReminders } from './src/notifications';
@@ -22,9 +24,10 @@ const Tab = createBottomTabNavigator();
 
 // Ícono de cada pestaña: [activo, inactivo]
 const TAB_ICONS = {
-  Today: ['today', 'today-outline'],
-  Family: ['people', 'people-outline'],
-  Settings: ['settings', 'settings-outline'],
+  Today: ['calendar', 'calendar-outline'],
+  Add: ['add-circle', 'add-circle-outline'],
+  People: ['people', 'people-outline'],
+  History: ['time', 'time-outline'],
 };
 
 export default function App() {
@@ -37,28 +40,37 @@ export default function App() {
   );
 }
 
-function HomeTabs({ onLogout }) {
+function HomeTabs() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
+        header: ({ navigation }) => <AppBar onAccountPress={() => navigation.navigate('Settings')} />,
         tabBarActiveTintColor: colors.primaryText,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.borderLight },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '700' },
+        tabBarInactiveTintColor: colors.textSecondary,
+        // Píldora de color detrás de la pestaña activa
+        tabBarActiveBackgroundColor: colors.primarySoft,
+        tabBarItemStyle: { borderRadius: 18, marginHorizontal: 6 },
+        tabBarStyle: {
+          height: 72 + insets.bottom,
+          paddingTop: 8,
+          paddingBottom: insets.bottom + 8,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.borderLight,
+        },
+        tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
         sceneStyle: { backgroundColor: colors.bg },
-        tabBarIcon: ({ focused, color, size }) => (
-          <Ionicons name={TAB_ICONS[route.name][focused ? 0 : 1]} size={size} color={color} />
+        tabBarIcon: ({ focused, color }) => (
+          <Ionicons name={TAB_ICONS[route.name][focused ? 0 : 1]} size={26} color={color} />
         ),
       })}
     >
       <Tab.Screen name="Today" component={TodayScreen} options={{ title: 'Hoy' }} />
-      <Tab.Screen name="Family" component={FamilyScreen} options={{ title: 'Familia' }} />
-      <Tab.Screen name="Settings" options={{ title: 'Ajustes' }}>
-        {(props) => <SettingsScreen {...props} onLogout={onLogout} />}
-      </Tab.Screen>
+      <Tab.Screen name="Add" component={ScheduleReminderScreen} options={{ title: 'Añadir' }} />
+      <Tab.Screen name="People" component={FamilyScreen} options={{ title: 'Personas' }} />
+      <Tab.Screen name="History" component={HistoryScreen} options={{ title: 'Historial' }} />
     </Tab.Navigator>
   );
 }
@@ -76,8 +88,8 @@ function AppContent() {
         ...base.colors,
         primary: colors.primaryText,
         background: colors.bg,
-        card: colors.bg,
-        text: colors.primaryDark,
+        card: colors.surface,
+        text: colors.text,
         border: colors.border,
         notification: colors.accent,
       },
@@ -103,30 +115,26 @@ function AppContent() {
           <NavigationContainer theme={navigationTheme}>
             <Stack.Navigator
               screenOptions={{
-                headerStyle: { backgroundColor: colors.bg },
-                headerTintColor: colors.primaryDark,
-                headerTitleStyle: { fontWeight: '800', color: colors.primaryDark, fontSize: 17 },
+                headerStyle: { backgroundColor: colors.surface },
+                headerTintColor: colors.primaryText,
+                headerTitleStyle: { fontWeight: '700', color: colors.text, fontSize: 18 },
                 headerShadowVisible: false,
                 headerTitleAlign: 'center',
                 headerBackTitle: 'Atrás',
                 contentStyle: { backgroundColor: colors.bg },
               }}
             >
-              <Stack.Screen name="Home" options={{ headerShown: false }}>
-                {(props) => <HomeTabs {...props} onLogout={handleLogout} />}
-              </Stack.Screen>
+              <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
               <Stack.Screen
                 name="ProfileForm"
                 component={ProfileFormScreen}
                 options={({ route }) => ({
-                  title: route.params?.profile ? 'Editar perfil' : 'Nuevo perfil',
+                  title: route.params?.profile ? 'Editar persona' : 'Nueva persona',
                 })}
               />
-              <Stack.Screen
-                name="ScheduleReminder"
-                component={ScheduleReminderScreen}
-                options={{ title: 'Programar recordatorio' }}
-              />
+              <Stack.Screen name="Settings" options={{ title: 'Ajustes' }}>
+                {(props) => <SettingsScreen {...props} onLogout={handleLogout} />}
+              </Stack.Screen>
             </Stack.Navigator>
           </NavigationContainer>
         </AppDataProvider>

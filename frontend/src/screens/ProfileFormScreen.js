@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import client from '../api/client';
 import { useAppData } from '../appData';
 import Avatar from '../components/Avatar';
-import { useTheme, makeStyles, shadow, getProfileTone } from '../theme';
+import { useTheme, makeStyles, getProfileTone } from '../theme';
 import { formatAge } from '../utils/schedule';
 
 const PROFILE_TYPES = [
@@ -150,7 +150,7 @@ export default function ProfileFormScreen({ route, navigation }) {
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={[styles.card, shadow]}>
+      <View style={styles.card}>
         {/* AVATAR / FOTO */}
         <View style={styles.avatarSection}>
           <TouchableOpacity
@@ -292,10 +292,10 @@ const useStyles = makeStyles((colors) => ({
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 24,
+    borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
   },
   avatarSection: {
     alignItems: 'center',
@@ -366,21 +366,18 @@ const useStyles = makeStyles((colors) => ({
     fontWeight: '700',
   },
   label: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700',
     marginBottom: 8,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    color: colors.text,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: colors.surfaceAlt,
     paddingHorizontal: 14,
+    minHeight: 52,
     marginBottom: 18,
   },
   inputIcon: {

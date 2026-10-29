@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { useAppData } from '../appData';
-import { useTheme, makeStyles, lightColors, darkColors, shadowSm } from '../theme';
+import { useTheme, makeStyles, lightColors, darkColors } from '../theme';
 
 const THEME_OPTIONS = [
   { id: 'light', label: 'Claro', icon: 'sunny-outline' },
@@ -56,108 +55,104 @@ export default function SettingsScreen({ onLogout }) {
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Ajustes</Text>
-
-        <Text style={styles.sectionLabel}>Apariencia</Text>
-        <View style={[styles.card, shadowSm]}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIcon}>
-              <Ionicons name={isDark ? 'moon' : 'sunny'} size={20} color={colors.primaryText} />
-            </View>
-            <View style={styles.cardHeaderText}>
-              <Text style={styles.cardTitle}>Tema de la app</Text>
-              <Text style={styles.cardSubtitle}>{modeDescription}</Text>
-            </View>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+      <Text style={styles.sectionLabel}>Apariencia</Text>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.cardIcon}>
+            <Ionicons name={isDark ? 'moon' : 'sunny'} size={20} color={colors.primaryText} />
           </View>
+          <View style={styles.cardHeaderText}>
+            <Text style={styles.cardTitle}>Tema de la app</Text>
+            <Text style={styles.cardSubtitle}>{modeDescription}</Text>
+          </View>
+        </View>
 
-          <View style={styles.optionsRow} accessibilityRole="radiogroup">
-            {THEME_OPTIONS.map((option) => {
-              const active = mode === option.id;
-              return (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[styles.option, active && styles.optionActive]}
-                  onPress={() => setMode(option.id)}
-                  activeOpacity={0.8}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: active }}
-                  accessibilityLabel={`Tema ${option.label}`}
-                >
-                  <ThemePreview mode={option.id} />
-                  <View style={styles.optionLabelRow}>
-                    <Ionicons
-                      name={option.icon}
-                      size={14}
-                      color={active ? colors.primaryText : colors.textSecondary}
-                    />
-                    <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>
-                      {option.label}
-                    </Text>
+        <View style={styles.optionsRow} accessibilityRole="radiogroup">
+          {THEME_OPTIONS.map((option) => {
+            const active = mode === option.id;
+            return (
+              <TouchableOpacity
+                key={option.id}
+                style={[styles.option, active && styles.optionActive]}
+                onPress={() => setMode(option.id)}
+                activeOpacity={0.8}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: active }}
+                accessibilityLabel={`Tema ${option.label}`}
+              >
+                <ThemePreview mode={option.id} />
+                <View style={styles.optionLabelRow}>
+                  <Ionicons
+                    name={option.icon}
+                    size={14}
+                    color={active ? colors.primaryText : colors.textSecondary}
+                  />
+                  <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>
+                    {option.label}
+                  </Text>
+                </View>
+                {active && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark" size={12} color="#fff" />
                   </View>
-                  {active && (
-                    <View style={styles.optionCheck}>
-                      <Ionicons name="checkmark" size={12} color="#fff" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
-          <View style={styles.hintRow}>
-            <Ionicons name="information-circle-outline" size={15} color={colors.muted} />
-            <Text style={styles.hintText}>
-              En Automático, la app cambia sola cuando tu celular pasa a modo oscuro o claro.
+        <View style={styles.hintRow}>
+          <Ionicons name="information-circle-outline" size={15} color={colors.muted} />
+          <Text style={styles.hintText}>
+            En Automático, la app cambia sola cuando tu celular pasa a modo oscuro o claro.
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.sectionLabel}>Notificaciones</Text>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.cardIcon}>
+            <Ionicons
+              name={notificationsEnabled ? 'notifications' : 'notifications-off-outline'}
+              size={20}
+              color={notificationsEnabled ? colors.primaryText : colors.warning}
+            />
+          </View>
+          <View style={styles.cardHeaderText}>
+            <Text style={styles.cardTitle}>Recordatorios de tomas</Text>
+            <Text style={styles.cardSubtitle}>
+              {notificationsEnabled
+                ? 'Activados: te avisamos a la hora exacta de cada toma'
+                : 'Desactivados: no recibirás avisos'}
             </Text>
           </View>
         </View>
+        {notificationsEnabled === false && (
+          <TouchableOpacity style={styles.primaryBtn} onPress={enableNotifications} activeOpacity={0.85}>
+            <Ionicons name="notifications-outline" size={18} color="#fff" />
+            <Text style={styles.primaryBtnText}>Activar notificaciones</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
-        <Text style={styles.sectionLabel}>Notificaciones</Text>
-        <View style={[styles.card, shadowSm]}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIcon}>
-              <Ionicons
-                name={notificationsEnabled ? 'notifications' : 'notifications-off-outline'}
-                size={20}
-                color={notificationsEnabled ? colors.primaryText : colors.warning}
-              />
-            </View>
-            <View style={styles.cardHeaderText}>
-              <Text style={styles.cardTitle}>Recordatorios de tomas</Text>
-              <Text style={styles.cardSubtitle}>
-                {notificationsEnabled
-                  ? 'Activados: te avisamos a la hora exacta de cada toma'
-                  : 'Desactivados: no recibirás avisos'}
-              </Text>
-            </View>
-          </View>
-          {notificationsEnabled === false && (
-            <TouchableOpacity style={styles.primaryBtn} onPress={enableNotifications} activeOpacity={0.85}>
-              <Ionicons name="notifications-outline" size={18} color="#fff" />
-              <Text style={styles.primaryBtnText}>Activar notificaciones</Text>
-            </TouchableOpacity>
-          )}
+      <Text style={styles.sectionLabel}>Cuenta</Text>
+      <TouchableOpacity
+        style={[styles.card, styles.logoutRow]}
+        onPress={handleLogout}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+      >
+        <View style={[styles.cardIcon, styles.logoutIcon]}>
+          <Ionicons name="log-out-outline" size={20} color={colors.danger} />
         </View>
+        <Text style={styles.logoutText}>Cerrar sesión</Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      </TouchableOpacity>
 
-        <Text style={styles.sectionLabel}>Cuenta</Text>
-        <TouchableOpacity
-          style={[styles.card, styles.logoutRow, shadowSm]}
-          onPress={handleLogout}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-        >
-          <View style={[styles.cardIcon, styles.logoutIcon]}>
-            <Ionicons name="log-out-outline" size={20} color={colors.danger} />
-          </View>
-          <Text style={styles.logoutText}>Cerrar sesión</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-        </TouchableOpacity>
-
-        <Text style={styles.footer}>Medi-Hora · versión {Constants.expoConfig?.version || '1.0.0'}</Text>
-      </ScrollView>
-    </SafeAreaView>
+      <Text style={styles.footer}>Medi-Hora · versión {Constants.expoConfig?.version || '1.0.0'}</Text>
+    </ScrollView>
   );
 }
 
@@ -171,15 +166,6 @@ const previewStyles = StyleSheet.create({
 const useStyles = makeStyles((colors) => ({
   screen: { flex: 1, backgroundColor: colors.bg },
   container: { padding: 16, paddingBottom: 36 },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.primaryDark,
-    letterSpacing: -0.6,
-    paddingHorizontal: 4,
-    paddingTop: 8,
-    marginBottom: 8,
-  },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '800',
@@ -192,7 +178,9 @@ const useStyles = makeStyles((colors) => ({
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 22,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: 18,
   },
   cardHeader: {

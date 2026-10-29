@@ -11,11 +11,10 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import client from '../api/client';
 import { useAppData } from '../appData';
 import Avatar from '../components/Avatar';
-import { useTheme, makeStyles, shadowSm, shadowMd } from '../theme';
+import { useTheme, makeStyles } from '../theme';
 import { toDateKey } from '../utils/schedule';
 
 const FREQUENCY_OPTIONS = [
@@ -70,12 +69,11 @@ function SectionHeader({ step, title, subtitle, right }) {
 export default function ScheduleReminderScreen({ route, navigation }) {
   const { colors } = useTheme();
   const styles = useStyles();
-  const initialProfile = route.params?.profile;
-  const insets = useSafeAreaInsets();
+  const routeProfileId = route.params?.profile?.id;
+  const { profiles, loading: loadingData, refresh } = useAppData();
 
   // Form State
-  const [profiles, setProfiles] = useState(initialProfile ? [initialProfile] : []);
-  const [selectedProfileId, setSelectedProfileId] = useState(initialProfile ? initialProfile.id : null);
+  const [selectedProfileId, setSelectedProfileId] = useState(routeProfileId ?? null);
 
   const [medicationName, setMedicationName] = useState('');
   const [dose, setDose] = useState('');
@@ -94,26 +92,43 @@ export default function ScheduleReminderScreen({ route, navigation }) {
   const [notes, setNotes] = useState('');
 
   const [loading, setLoading] = useState(false);
-  const { refresh } = useAppData();
-  const [fetchingProfiles, setFetchingProfiles] = useState(false);
+  const fetchingProfiles = loadingData && profiles.length === 0;
+
+  // Al llegar desde "Añadir medicamento" de una persona se la preselecciona. El parámetro
+  // se limpia para que la próxima vez que se abra con la misma persona vuelva a aplicarse
+  useEffect(() => {
+    if (routeProfileId) {
+      setSelectedProfileId(routeProfileId);
+      navigation.setParams({ profile: undefined });
+    }
+  }, [routeProfileId]);
 
   useEffect(() => {
-    const fetchProfiles = async () => {
-      try {
-        setFetchingProfiles(true);
-        const res = await client.get('/profiles');
-        setProfiles(res.data);
-        if (!selectedProfileId && res.data.length > 0) {
-          setSelectedProfileId(res.data[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching profiles:', err);
-      } finally {
-        setFetchingProfiles(false);
-      }
-    };
-    fetchProfiles();
-  }, []);
+    if (profiles.length && !profiles.some((p) => p.id === selectedProfileId)) {
+      setSelectedProfileId(profiles[0].id);
+    }
+  }, [profiles, selectedProfileId]);
+
+  const resetForm = () => {
+    setMedicationName('');
+    setDose('');
+    setFrequencyType('diaria');
+    setIntervalHour(8);
+    setSelectedDays([1, 3, 5]);
+    setWeeklyDay(1);
+    setTimes(['08:00', '20:00']);
+    setCustomTimeInput('');
+    setShowTimeModal(false);
+    setPhoto('');
+    setPhotoInputUrl('');
+    setShowUrlInput(false);
+    setNotes('');
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    navigation.navigate('Today');
+  };
 
   const handleAutoGenerateTimes = (hours) => {
     const dosesPerDay = Math.floor(24 / hours);
@@ -324,7 +339,10 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         [
           {
             text: 'Aceptar',
-            onPress: () => navigation.goBack(),
+            onPress: () => {
+              resetForm();
+              navigation.navigate('Today');
+            },
           },
         ]
       );
@@ -343,8 +361,11 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        <Text style={styles.pageTitle}>Agregar recordatorio</Text>
+        <Text style={styles.pageSubtitle}>Configura los detalles del nuevo medicamento.</Text>
+
         {/* 1. SELECCIÓN DE PACIENTE / PERFIL */}
-        <View style={[styles.sectionCard, shadowSm]}>
+        <View style={styles.sectionCard}>
           <SectionHeader step={1} title="Paciente / Familiar" subtitle="¿A quién va asignado este tratamiento?" />
 
           {fetchingProfiles ? (
@@ -391,7 +412,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         </View>
 
         {/* 2. DATOS DEL FÁRMACO */}
-        <View style={[styles.sectionCard, shadowSm]}>
+        <View style={styles.sectionCard}>
           <SectionHeader step={2} title="Medicamento y Dosis" subtitle="Detalles de la prescripción" />
 
           <Text style={styles.inputLabel}>Nombre del medicamento *</Text>
@@ -458,7 +479,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         </View>
 
         {/* 3. FRECUENCIA */}
-        <View style={[styles.sectionCard, shadowSm]}>
+        <View style={styles.sectionCard}>
           <SectionHeader step={3} title="Frecuencia de Toma" subtitle="¿Cada cuánto se debe administrar?" />
 
           <View style={styles.frequencyList}>
@@ -575,7 +596,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         </View>
 
         {/* 4. HORARIOS DE TOMA */}
-        <View style={[styles.sectionCard, shadowSm]}>
+        <View style={styles.sectionCard}>
           <SectionHeader
             step={4}
             title="Horarios de Toma"
@@ -666,7 +687,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         </View>
 
         {/* 5. FOTO Y NOTAS */}
-        <View style={[styles.sectionCard, shadowSm]}>
+        <View style={styles.sectionCard}>
           <SectionHeader step={5} title="Foto del Medicamento y Notas" subtitle="Facilita el reconocimiento visual" />
 
           <View style={styles.photoContainer}>
@@ -762,7 +783,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
         </View>
 
         {/* 6. PREVISUALIZACIÓN DEL CALENDARIO DE TOMAS */}
-        <View style={[styles.sectionCard, styles.previewSectionCard, shadowSm]}>
+        <View style={[styles.sectionCard, styles.previewSectionCard]}>
           <View style={styles.rowBetween}>
             <View style={styles.sectionHeaderRow}>
               <View style={[styles.headerIconBadge, { backgroundColor: colors.primaryMuted }]}>
@@ -825,10 +846,7 @@ export default function ScheduleReminderScreen({ route, navigation }) {
             ))}
           </View>
         </View>
-      </ScrollView>
-
-      {/* BOTÓN GUARDAR RECORDATORIO (fijo) */}
-      <View style={[styles.footerContainer, shadowMd, { paddingBottom: Math.max(insets.bottom, 14) }]}>
+        {/* GUARDAR / CANCELAR */}
         <TouchableOpacity
           style={[styles.saveButton, loading && styles.saveButtonDisabled]}
           onPress={handleSubmit}
@@ -839,27 +857,46 @@ export default function ScheduleReminderScreen({ route, navigation }) {
             <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <Ionicons name="checkmark-circle-outline" size={22} color="#fff" />
-              <Text style={styles.saveButtonText}>Guardar y Activar Recordatorio</Text>
+              <Ionicons name="save-outline" size={22} color="#fff" />
+              <Text style={styles.saveButtonText}>Guardar recordatorio</Text>
             </>
           )}
         </TouchableOpacity>
-      </View>
+        <TouchableOpacity style={styles.cancelButton} onPress={handleCancel} activeOpacity={0.7}>
+          <Text style={styles.cancelButtonText}>Cancelar</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
 
 const useStyles = makeStyles((colors) => ({
   screen: { flex: 1, backgroundColor: colors.bg },
-  scrollContent: { padding: 16, paddingBottom: 24 },
+  scrollContent: { padding: 20, paddingBottom: 32 },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+    marginTop: 4,
+  },
+  pageSubtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 22,
+    lineHeight: 22,
+  },
 
   sectionCard: {
     backgroundColor: colors.surface,
-    borderRadius: 22,
-    padding: 18,
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -957,19 +994,18 @@ const useStyles = makeStyles((colors) => ({
 
   // Inputs
   inputLabel: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700',
-    color: colors.textSecondary,
-    marginBottom: 6,
+    color: colors.text,
+    marginBottom: 8,
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: colors.surfaceAlt,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
+    minHeight: 52,
   },
   inputIcon: {
     marginRight: 8,
@@ -977,17 +1013,15 @@ const useStyles = makeStyles((colors) => ({
   textInput: {
     flex: 1,
     paddingVertical: 12,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
   },
   notesInput: {
-    minHeight: 76,
+    minHeight: 84,
     textAlignVertical: 'top',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    borderRadius: 12,
     backgroundColor: colors.surfaceAlt,
   },
 
@@ -1334,23 +1368,19 @@ const useStyles = makeStyles((colors) => ({
   doseScheduleTime: { fontSize: 12, fontWeight: '800', color: colors.primaryDark },
   doseScheduleAmount: { fontSize: 11, color: colors.muted, marginLeft: 3 },
 
-  // Footer y Guardar
-  footerContainer: {
-    backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
+  // Guardar y cancelar
   saveButton: {
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 16,
-    borderRadius: 16,
+    height: 58,
+    borderRadius: 14,
+    marginTop: 8,
   },
   saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
+  saveButtonText: { color: '#ffffff', fontSize: 17, fontWeight: '700' },
+  cancelButton: { height: 52, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  cancelButtonText: { color: colors.textSecondary, fontSize: 16, fontWeight: '600' },
 }));

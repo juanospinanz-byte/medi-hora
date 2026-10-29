@@ -5,7 +5,7 @@ import { getProfileTone, useTheme } from '../theme';
 export default function Avatar({ name, photo, type, size = 48, style }) {
   const { colors } = useTheme();
   const tone = getProfileTone(type, colors);
-  const box = { width: size, height: size, borderRadius: size * 0.34 };
+  const box = { width: size, height: size, borderRadius: size / 2 };
 
   if (photo) {
     return <Image source={{ uri: photo }} style={[box, style]} />;
